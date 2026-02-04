@@ -1,0 +1,192 @@
+/* Catalog Extensions: frontend overrides for webshop.
+ * Keep all website layout tweaks in this app for upgrade safety.
+ */
+
+/* Informational Consumer Offer ribbon on product cards and cart lines */
+.customer-discount-info {
+	display: inline-block;
+	margin-top: 0.35rem;
+	padding: 0.15rem 0.6rem;
+	background: linear-gradient(90deg, #0f766e, #16a34a);
+	color: #ffffff;
+	font-size: 0.75rem;
+	font-weight: 600;
+	border-radius: 0 0.5rem 0.5rem 0;
+	position: relative;
+}
+
+/* Small triangular notch to make it feel like a ribbon */
+.customer-discount-info::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 100%;
+	border-width: 0.35rem 0.4rem 0 0;
+	border-style: solid;
+	border-color: #15803d transparent transparent transparent;
+}
+
+/* Emphasize product price on listing cards */
+.item-card .product-price {
+	font-weight: 900;
+	font-size: 1.5rem;
+	color: #111827; /* near-black for strong emphasis */
+}
+
+/* (Quantity indicator and Go to Cart use default ERPNext styles on listing cards now) */
+
+/* Hide Go to Cart button on listing cards; cart icon + indicator handle navigation */
+.item-card .go-to-cart-grid {
+	display: none !important;
+}
+
+/* Hide the small cart-indicator bubble on listing cards; use qty spinner + cart icon instead */
+.item-card .cart-indicator {
+	display: none !important;
+}
+
+/* Listing quantity controls: keep them visually attached to the card body */
+.item-card .listing-qty-wrapper {
+	margin-top: 0.5rem;
+	width: 100%;
+}
+
+.item-card .listing-qty-inner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	width: 100%;
+}
+
+.item-card .listing-qty-inner .number-spinner {
+	flex: 0 1 70%;
+	max-width: 220px;
+	height: 2.25rem;
+}
+
+.item-card .listing-qty-inner .number-spinner .btn.cart-btn {
+	padding: 0 0.6rem;
+	font-size: 1rem;
+}
+
+.item-card .listing-qty-inner .number-spinner .cart-qty {
+	font-size: 1rem;
+	height: 2.25rem;
+	padding-top: 0.25rem;
+	padding-bottom: 0.25rem;
+}
+
+.item-card .listing-qty-inner .listing-go-to-cart {
+	display: inline-flex;
+	align-items: center;
+}
+
+/* Hide per-item notes textarea in cart (upgrade-safe, via custom app) */
+.cart-items .notes,
+.cart-items textarea[data-item-code] {
+	display: none !important;
+}
+
+/* Item badges on listing cards (grid + list) */
+.ce-badges {
+	margin-top: 0.25rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.ce-badge {
+	font-size: 0.7rem;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+	font-weight: 600;
+	background: #e5e7eb;
+	color: #111827;
+}
+
+.ce-badge-new {
+	background: #eef2ff;
+	color: #4f46e5;
+}
+
+.ce-badge-bestseller {
+	background: #fffbeb;
+	color: #b45309;
+}
+
+.ce-badge-on-sale,
+.ce-badge-offer,
+.ce-badge-clearance {
+	background: #fee2e2;
+	color: #b91c1c;
+}
+
+.ce-badge-low-stock {
+	background: #fef9c3;
+	color: #854d0e;
+}
+
+.ce-badge-featured {
+	background: #ecfdf3;
+	color: #15803d;
+}
+
+/* Mobile: ensure off-canvas filters' inner content does not touch the left edge */
+@media (max-width: 767.98px) {
+	.offcanvas-filters {
+		padding-left: 1rem;
+	}
+
+	/* Product detail: make cart/quantity row responsive and avoid overflow */
+	.item-cart .mb-4.d-flex {
+		flex-wrap: wrap;
+		row-gap: 0.5rem;
+	}
+
+	/* Let quantity spinner and buttons stack nicely and shrink a bit */
+	.item-cart .number-spinner {
+		max-width: 140px;
+	}
+
+	.item-cart .btn-add-to-cart,
+	.item-cart .btn-view-in-cart {
+		padding: 0.35rem 0.75rem;
+		font-size: 0.875rem; /* slightly smaller text */
+	}
+
+	/* Cart page: make quantity column responsive and avoid overflow */
+	/* Relax the fixed 25% width on the qty column and allow its content to stack */
+	.cart-table td:nth-child(2) {
+		width: auto !important;
+	}
+
+	.cart-table td:nth-child(2) > .d-flex {
+		flex-direction: column;
+		align-items: stretch;
+		row-gap: 0.25rem;
+	}
+
+	/* Let the spinner use full available width on very small screens */
+	.cart-table .number-spinner {
+		width: 100%;
+		max-width: none;
+	}
+
+	.cart-table .number-spinner .btn.cart-btn {
+		padding: 0.15rem 0.4rem;
+		font-size: 0.8rem;
+	}
+
+	.cart-table .number-spinner .cart-qty {
+		flex: 1 1 auto;
+		max-width: none;
+		padding: 0.15rem 0.25rem;
+		font-size: 0.8rem;
+	}
+
+	.cart-table .remove-cart-item {
+		margin-left: 0;
+		margin-top: 0;
+	}
+}
