@@ -1,0 +1,67 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-07 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "label",
+  "from_amount",
+  "to_amount",
+  "enabled",
+  "sort_order"
+ ],
+ "fields": [
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "label": "Label",
+   "reqd": 1
+  },
+  {
+   "fieldname": "from_amount",
+   "fieldtype": "Currency",
+   "label": "From Amount"
+  },
+  {
+   "fieldname": "to_amount",
+   "fieldtype": "Currency",
+   "label": "To Amount"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "sort_order",
+   "fieldtype": "Int",
+   "label": "Sort Order"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-02-07 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catalog Extensions",
+ "name": "Catalog Price Range",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "sort_order",
+ "sort_order": "ASC",
+ "states": []
+}
