@@ -1,0 +1,355 @@
+{% extends "templates/web.html" %}
+
+{% block style %}
+<style>
+.success-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+}
+
+.success-card {
+    background: white;
+    border-radius: 20px;
+    padding: 60px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.success-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transform: rotate(45deg);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.success-icon {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 30px;
+    position: relative;
+}
+
+.success-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.success-circle {
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    animation: drawCircle 1.5s ease-out forwards;
+}
+
+.success-check {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: drawCheck 1s ease-out 0.8s forwards;
+}
+
+@keyframes drawCircle {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes drawCheck {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.success-title {
+    font-size: 2.5rem;
+    color: #2d3748;
+    margin-bottom: 15px;
+    font-weight: 700;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out 1.2s forwards;
+}
+
+.success-message {
+    font-size: 1.2rem;
+    color: #718096;
+    margin-bottom: 30px;
+    line-height: 1.6;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out 1.4s forwards;
+}
+
+.order-details {
+    background: #f7fafc;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out 1.6s forwards;
+}
+
+.order-id {
+    font-size: 1.1rem;
+    color: #4a5568;
+    margin-bottom: 10px;
+}
+
+.order-id strong {
+    color: #2d3748;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out 1.8s forwards;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.btn-secondary:hover {
+    background: #cbd5e0;
+    transform: translateY(-2px);
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #667eea;
+    position: absolute;
+    animation: confetti-fall 3s linear infinite;
+}
+
+.confetti:nth-child(1) { left: 10%; animation-delay: 0s; background: #667eea; }
+.confetti:nth-child(2) { left: 20%; animation-delay: 0.5s; background: #764ba2; }
+.confetti:nth-child(3) { left: 30%; animation-delay: 1s; background: #f687b3; }
+.confetti:nth-child(4) { left: 40%; animation-delay: 1.5s; background: #fbb6ce; }
+.confetti:nth-child(5) { left: 50%; animation-delay: 2s; background: #667eea; }
+.confetti:nth-child(6) { left: 60%; animation-delay: 2.5s; background: #764ba2; }
+.confetti:nth-child(7) { left: 70%; animation-delay: 0.3s; background: #f687b3; }
+.confetti:nth-child(8) { left: 80%; animation-delay: 0.8s; background: #fbb6ce; }
+.confetti:nth-child(9) { left: 90%; animation-delay: 1.3s; background: #667eea; }
+
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+    .success-card {
+        padding: 40px 20px;
+        margin: 20px;
+    }
+    
+    .success-title {
+        font-size: 2rem;
+    }
+    
+    .success-message {
+        font-size: 1rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn {
+        width: 100%;
+        max-width: 250px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="success-container">
+    <!-- Confetti Animation -->
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    
+    <div class="success-card">
+        <div class="success-icon">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle class="success-circle" cx="50" cy="50" r="45" stroke="#10b981" stroke-width="3" fill="none"/>
+                <path class="success-check" d="M30 50 L45 65 L70 35" stroke="#10b981" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        
+        <h1 class="success-title">Order Placed Successfully!</h1>
+        <p class="success-message">
+            Thank you for your order! We've received your order and will start processing it right away.
+        </p>
+        
+        <div class="order-details">
+            <div class="order-id">
+                <strong>Order ID:</strong> {{ order_id or 'N/A' }}
+            </div>
+            {% if customer_name %}
+            <div class="order-id">
+                <strong>Customer:</strong> {{ customer_name }}
+            </div>
+            {% endif %}
+            {% if order_total %}
+            <div class="order-id">
+                <strong>Total Amount:</strong> {{ order_total }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/orders" class="btn btn-primary pulse">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"></path>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                </svg>
+                View My Orders
+            </a>
+            <a href="/" class="btn btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                Continue Shopping
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-redirect to orders after 10 seconds
+setTimeout(function() {
+    window.location.href = '/orders';
+}, 10000);
+
+// Add some interactive effects
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover sound effect (optional)
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px) scale(1.02)';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+    
+    // Create floating particles effect
+    function createParticle() {
+        const particle = document.createElement('div');
+        particle.style.position = 'absolute';
+        particle.style.width = '4px';
+        particle.style.height = '4px';
+        particle.style.background = '#667eea';
+        particle.style.borderRadius = '50%';
+        particle.style.pointerEvents = 'none';
+        particle.style.opacity = '0.6';
+        
+        const startX = Math.random() * window.innerWidth;
+        const startY = window.innerHeight;
+        
+        particle.style.left = startX + 'px';
+        particle.style.top = startY + 'px';
+        
+        document.body.appendChild(particle);
+        
+        const duration = 3000 + Math.random() * 2000;
+        const endY = -100;
+        const horizontalMovement = (Math.random() - 0.5) * 100;
+        
+        particle.animate([
+            { transform: 'translate(0, 0) scale(1)', opacity: 0.6 },
+            { transform: `translate(${horizontalMovement}px, ${endY}px) scale(0.5)`, opacity: 0 }
+        ], {
+            duration: duration,
+            easing: 'ease-out'
+        }).onfinish = () => particle.remove();
+    }
+    
+    // Create particles periodically
+    setInterval(createParticle, 300);
+});
+</script>
+{% endblock %}

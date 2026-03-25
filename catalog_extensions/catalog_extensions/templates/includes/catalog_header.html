@@ -1,0 +1,91 @@
+{# Modern header layout for webshop, implemented in custom app #}
+{# Use only safe calls inside Jinja website sandbox. Brand name comes from
+   Webshop Settings.company with a simple fallback. Tagline is a static
+   placeholder the site admin can later change in this template or via a
+   custom mechanism. #}
+{% set brand_name = frappe.db.get_single_value('Webshop Settings', 'company') or _('Your Brand') %}
+{% set tagline = _('Your tagline goes here') %}
+
+{# All distinct brands from Website Item #}
+{% set brands = frappe.get_all(
+  'Website Item',
+  fields=['brand'],
+  filters={'published': 1, 'brand': ['!=', '']},
+  group_by='brand',
+  order_by='brand asc',
+) %}
+
+{# All distinct item groups from Website Item #}
+{% set item_groups = frappe.get_all(
+  'Website Item',
+  fields=['item_group'],
+  filters={'published': 1, 'item_group': ['!=', '']},
+  group_by='item_group',
+  order_by='item_group asc',
+) %}
+
+<nav class="navbar navbar-expand-md navbar-light bg-white border-bottom mb-4 py-2">
+  <div class="container">
+    <!-- Brand / Logo -->
+    <a class="navbar-brand d-flex flex-column flex-md-row align-items-md-center" href="/">
+      {# Placeholder for logo image: replace src with your logo later #}
+      <span class="d-inline-block font-weight-semibold mr-md-2">{{ brand_name }}</span>
+      <small class="text-muted d-none d-md-inline">{{ tagline }}</small>
+    </a>
+
+    <!-- Mobile toggler -->
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#catalog-main-nav" aria-controls="catalog-main-nav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="catalog-main-nav">
+      <!-- Main nav links -->
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/">{{ _('Home') }}</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/all-products">{{ _('All Products') }}</a>
+        </li>
+
+        <!-- Brands dropdown: all brand values -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="nav-brands" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {{ _('Brands') }}
+          </a>
+          <div class="dropdown-menu" aria-labelledby="nav-brands">
+            <a class="dropdown-item" href="/all-products">{{ _('All Brands') }}</a>
+            <div class="dropdown-divider"></div>
+            {% for b in brands %}
+              {% if b.brand %}
+                <a class="dropdown-item" href="/all-products?brand={{ b.brand | urlencode }}">{{ b.brand }}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </li>
+
+        <!-- Categories dropdown: all item_group values -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="nav-categories" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {{ _('Categories') }}
+          </a>
+          <div class="dropdown-menu" aria-labelledby="nav-categories">
+            <a class="dropdown-item" href="/all-products">{{ _('All Categories') }}</a>
+            <div class="dropdown-divider"></div>
+            {% for g in item_groups %}
+              {% if g.item_group %}
+                <a class="dropdown-item" href="/all-products?item_group={{ g.item_group | urlencode }}">{{ g.item_group }}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </li>
+      </ul>
+
+      <!-- Right side: search placeholder (non-functional yet) -->
+      <form class="form-inline my-2 my-md-0 d-none d-md-flex" action="/all-products" method="get">
+        <input class="form-control form-control-sm mr-sm-2" type="search" name="search" placeholder="{{ _('Search products') }}" aria-label="{{ _('Search') }}">
+        <button class="btn btn-outline-primary btn-sm my-2 my-sm-0" type="submit">{{ _('Search') }}</button>
+      </form>
+    </div>
+  </div>
+</nav>

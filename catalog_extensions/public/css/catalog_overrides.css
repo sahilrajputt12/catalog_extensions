@@ -1,0 +1,722 @@
+/* Catalog Extensions: frontend overrides for webshop.
+ * Keep all website layout tweaks in this app for upgrade safety.
+ */
+
+/* Informational Consumer Offer ribbon on product cards and cart lines */
+.customer-discount-info {
+	display: inline-block;
+	margin-top: 0.35rem;
+	padding: 0.15rem 0.6rem;
+	background: linear-gradient(90deg, #0f766e, #16a34a);
+	color: #ffffff;
+	font-size: 0.75rem;
+	font-weight: 600;
+	border-radius: 0 0.5rem 0.5rem 0;
+	position: relative;
+}
+
+/* Small triangular notch to make it feel like a ribbon */
+.customer-discount-info::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 100%;
+	border-width: 0.35rem 0.4rem 0 0;
+	border-style: solid;
+	border-color: #15803d transparent transparent transparent;
+}
+
+/* Emphasize product price on listing cards */
+.item-card .product-price {
+	font-weight: 900;
+	font-size: 1.5rem;
+	color: #111827; /* near-black for strong emphasis */
+}
+
+/* (Quantity indicator and Go to Cart use default ERPNext styles on listing cards now) */
+
+/* Hide Go to Cart button on listing cards; cart icon + indicator handle navigation */
+.item-card .go-to-cart-grid {
+	display: none !important;
+}
+
+/* Hide the small cart-indicator bubble on listing cards; use qty spinner + cart icon instead */
+.item-card .cart-indicator {
+	display: none !important;
+}
+
+/* Listing quantity controls: keep them visually attached to the card body */
+.item-card .listing-qty-wrapper {
+	margin-top: 0.5rem;
+	width: 100%;
+}
+
+.item-card .listing-qty-inner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	width: 100%;
+}
+
+.item-card .listing-qty-inner .number-spinner {
+	flex: 0 1 70%;
+	max-width: 220px;
+	height: 2.25rem;
+}
+
+.item-card .listing-qty-inner .number-spinner .btn.cart-btn {
+	padding: 0 0.6rem;
+	font-size: 1rem;
+}
+
+.item-card .listing-qty-inner .number-spinner .cart-qty {
+	font-size: 1rem;
+	height: 2.25rem;
+	padding-top: 0.25rem;
+	padding-bottom: 0.25rem;
+}
+
+.item-card .listing-qty-inner .listing-go-to-cart {
+	display: inline-flex;
+	align-items: center;
+}
+
+/* Hide per-item notes textarea in cart (upgrade-safe, via custom app) */
+.cart-items .notes,
+.cart-items textarea[data-item-code] {
+	display: none !important;
+}
+
+<<<<<<< HEAD
+=======
+/* Force grid-only product listing: hide list view toggle and list layout */
+.btn-list-view,
+#list,
+#products-list-area {
+	display: none !important;
+}
+
+>>>>>>> b7a521d (Updated existing files)
+/* Item badges on listing cards (grid + list) */
+.ce-badges {
+	margin-top: 0.25rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.ce-badge {
+	font-size: 0.7rem;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+	font-weight: 600;
+	background: #e5e7eb;
+	color: #111827;
+}
+
+.ce-badge-new {
+	background: #eef2ff;
+	color: #4f46e5;
+}
+
+.ce-badge-bestseller {
+	background: #fffbeb;
+	color: #b45309;
+}
+
+.ce-badge-on-sale,
+.ce-badge-offer,
+.ce-badge-clearance {
+	background: #fee2e2;
+	color: #b91c1c;
+}
+
+.ce-badge-low-stock {
+	background: #fef9c3;
+	color: #854d0e;
+}
+
+.ce-badge-featured {
+	background: #ecfdf3;
+	color: #15803d;
+}
+
+<<<<<<< HEAD
+=======
+/* Badges: overlay on top-right of product cards (all viewports) */
+.item-card-group-section .item-card .card {
+	position: relative;
+}
+
+.item-card-group-section .item-card .ce-badges {
+	position: absolute;
+	top: 0.25rem;
+	right: 0.25rem;
+	z-index: 2;
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 0.2rem;
+	margin: 0 !important;
+	padding: 0 !important;
+	justify-content: flex-end;
+	pointer-events: none;
+}
+
+.item-card-group-section .item-card .ce-badge {
+	white-space: nowrap;
+	padding: 0.08rem 0.35rem;
+	font-size: 0.62rem;
+	line-height: 1.1;
+	border-radius: 999px;
+	opacity: 0.98;
+}
+
+>>>>>>> b7a521d (Updated existing files)
+/* Amazon-style off-canvas mobile filters */
+.ce-mobile-filters-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ce-mobile-filters-sidebar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  max-width: 80vw;
+  height: 100%;
+  background: #fff;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  z-index: 1050;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+}
+
+.ce-mobile-filters-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 0.75rem;
+}
+
+.ce-mobile-filters-header h5 {
+  flex: 1;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.ce-mobile-filters-close {
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+.ce-mobile-filters-body {
+  padding: 1rem;
+}
+
+/* When open */
+body.ce-mobile-filters-open .ce-mobile-filters-overlay {
+  display: block;
+  opacity: 1;
+}
+
+body.ce-mobile-filters-open .ce-mobile-filters-sidebar {
+  display: block;
+  transform: translateX(0);
+}
+
+/* Prevent body scroll when filters are open on mobile */
+body.ce-mobile-filters-open {
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .ce-mobile-filters-overlay,
+  .ce-mobile-filters-sidebar {
+    display: none !important;
+  }
+}
+
+/* Mobile: ensure off-canvas filters' inner content does not touch the left edge */
+<<<<<<< HEAD
+@media (max-width: 767.98px) {
+=======
+/* Desktop/Tablet: Use original webshop Bootstrap grid (col-sm-4) - no overrides */
+
+/* Mobile (<768px): Flexbox grid with 2 columns, ultra-thin layout */
+@media (max-width: 767.98px) {
+	.products-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.05rem !important;
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+	}
+
+	.products-list .item-card {
+		flex: 0 0 calc(50% - 0.05rem) !important;
+		max-width: calc(50% - 0.05rem) !important;
+		min-width: 0 !important;
+	}
+}
+
+/* Compact card chrome only for grid cards inside webshop listing */
+.item-card-group-section .item-card .card {
+	/* slightly thinner padding than Bootstrap default card */
+	padding: 0.5rem 0.5rem 0.75rem;
+}
+
+.item-card-group-section .item-card .card-body {
+	/* remove extra internal padding; rely on outer card padding */
+	padding: 0.25rem 0.25rem 0.5rem;
+}
+
+/* Remove extra top margin from title row inside card body (inline style/margins)
+ * Grid HTML wraps title + icons in a flex row; we keep this tight.
+ */
+.item-card-group-section .item-card .card-body-flex > div:first-child {
+	margin-top: 0.25rem !important;
+}
+
+/* Tighten vertical spacing between price, stock, and buttons on grid cards */
+.item-card-group-section .item-card .product-price {
+	margin-top: 0.25rem;
+	margin-bottom: 0.25rem;
+}
+
+.item-card-group-section .item-card .out-of-stock {
+	margin-top: 0.15rem;
+	margin-bottom: 0.15rem;
+}
+
+.item-card-group-section .item-card .btn-add-to-cart-list,
+.item-card-group-section .item-card .go-to-cart-grid,
+.item-card-group-section .item-card .listing-qty-wrapper {
+	margin-top: 0.25rem !important;
+}
+
+/* Mobile (<768px): Aggressive whitespace removal and 2-column flexbox grid */
+@media (max-width: 767.98px) {
+	/* Remove ALL padding/margin from column classes */
+	.products-list .col-sm-4,
+	.products-list .col-sm-3,
+	.products-list .col-sm-6,
+	.products-list [class*="col-"] {
+		flex: 0 0 auto !important;
+		max-width: none !important;
+		width: auto !important;
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+	}
+
+	/* Force 2-per-row with ZERO gap between cards */
+	.products-list .item-card {
+		flex: 0 0 50% !important;
+		max-width: 50% !important;
+		min-width: 0 !important;
+		padding-left: 0.1rem !important;
+		padding-right: 0.1rem !important;
+		box-sizing: border-box !important;
+	}
+
+	/* Remove all gaps and margins from products list */
+	.products-list {
+		gap: 0 !important;
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	/* Tighten container padding */
+	.item-card-group-section,
+	#product-listing {
+		padding-left: 0.15rem !important;
+		padding-right: 0.15rem !important;
+	}
+
+	/* Remove row gutters completely */
+	.page_content > .row {
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+	}
+
+	.page_content > .row > [class*="col-"] {
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	/* Remove any remaining page/container side padding */
+	.container,
+	.container-fluid,
+	.page_content {
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+>>>>>>> b7a521d (Updated existing files)
+	.offcanvas-filters {
+		padding-left: 1rem;
+	}
+
+<<<<<<< HEAD
+=======
+	/* Reduce header spacing */
+	.page_head,
+	.page-header,
+	.page-title,
+	.web-page-title,
+	.page_content > .mb-6 {
+		margin-bottom: 0.5rem !important;
+	}
+
+	/* Toolbar spacing */
+	#product-listing .toolbar {
+		margin-top: 0;
+		margin-bottom: 0.25rem;
+		padding-top: 0.25rem;
+		padding-bottom: 0.25rem;
+	}
+
+	/* Products list top spacing */
+	#product-listing .products-list {
+		margin-top: 0.25rem;
+	}
+
+	/* Product listing margins */
+	#product-listing {
+		padding-left: 0.15rem !important;
+		padding-right: 0.15rem !important;
+		margin-top: 0.25rem !important;
+		margin-bottom: 0.25rem !important;
+	}
+
+	/* Filters */
+	#product-filters.filters-section {
+		margin-right: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	#product-filters .title-section {
+		margin-bottom: 0.5rem !important;
+	}
+
+	#product-filters .filters-title,
+	#product-filters .clear-filters {
+		margin-bottom: 0.25rem !important;
+	}
+
+	/* Remove injected <br> */
+	#product-listing br {
+		display: none;
+	}
+
+	/* Product card: 60/40 image-to-content ratio on mobile */
+	.item-card-group-section .item-card .card {
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
+		overflow: visible;
+		min-height: 0;
+		border: 1px solid rgba(17, 24, 39, 0.12);
+		padding: 0.35rem 0.35rem 0.5rem;
+	}
+
+	/* Force 2 products per row in grid view on mobile */
+	.item-card-group-section .row.products-list .col-sm-4.item-card,
+	.item-card-group-section .row.products-list .col-sm-3.item-card,
+	.item-card-group-section .row.products-list .item-card {
+		flex: 0 0 50% !important;
+		max-width: 50% !important;
+		width: 50% !important;
+	}
+
+	.item-card-group-section .item-card .card-img-container {
+		flex: 0 0 60%;
+		width: 100%;
+		/* keep it compact but give image more room */
+		margin-bottom: 0.15rem;
+	}
+
+	/* Badges: overlay on top-right to save content space */
+	.item-card-group-section .item-card .card {
+		position: relative;
+	}
+
+	.item-card-group-section .item-card .ce-badges {
+		position: absolute;
+		top: 0.25rem;
+		right: 0.25rem;
+		z-index: 2;
+		display: flex;
+		flex-wrap: nowrap;
+		gap: 0.2rem;
+		margin: 0 !important;
+		padding: 0 !important;
+		justify-content: flex-end;
+		pointer-events: none;
+	}
+
+	.item-card-group-section .item-card .ce-badge {
+		white-space: nowrap;
+		padding: 0.08rem 0.35rem;
+		font-size: 0.62rem;
+		line-height: 1.1;
+		border-radius: 999px;
+		opacity: 0.98;
+	}
+
+	.item-card-group-section .item-card .card-img-container img.card-img {
+		width: 100% !important;
+		height: auto !important;
+		display: block;
+		object-fit: cover;
+	}
+
+	.item-card-group-section .item-card .card-body {
+		flex: 1 1 40%;
+		box-sizing: border-box;
+		min-width: 0;
+		padding: 0.2rem 0.15rem 0.25rem;
+	}
+
+	/* Ensure action controls do not visually spill into the next card */
+	.item-card-group-section .item-card .btn-add-to-cart-list,
+	.item-card-group-section .item-card .go-to-cart-grid,
+	.item-card-group-section .item-card .listing-qty-wrapper {
+		width: 100% !important;
+		max-width: 100% !important;
+		box-sizing: border-box;
+	}
+
+	.item-card-group-section .item-card .listing-qty-inner {
+		flex-wrap: nowrap;
+		justify-content: space-between;
+		gap: 0.25rem;
+		width: 100%;
+	}
+
+	.item-card-group-section .item-card .listing-qty-inner .number-spinner {
+		flex: 1 1 auto;
+		min-width: 0;
+		max-width: none;
+	}
+
+	.item-card-group-section .item-card .listing-go-to-cart {
+		flex: 0 0 auto;
+		margin-left: 0 !important;
+	}
+
+	/* Price: responsive sizing for mobile, avoid oversized */
+	.item-card-group-section .item-card .product-price {
+		font-size: 1rem !important;
+		line-height: 1.15;
+		font-weight: 800;
+	}
+
+	/* Offers section: compact and responsive for mobile */
+	.item-card-group-section .item-card .offers-heading {
+		display: none !important;
+	}
+
+	.item-card-group-section .item-card .offer-container {
+		margin-top: 0.15rem;
+	}
+
+	.item-card-group-section .item-card .offer-container .mt-2.d-flex {
+		margin-top: 0.1rem !important;
+		margin-bottom: 0.1rem !important;
+		gap: 0.25rem;
+	}
+
+	.item-card-group-section .item-card .offer-container svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.item-card-group-section .item-card .offer-container p {
+		font-size: 0.7rem !important;
+		font-weight: 700 !important;
+		margin: 0 !important;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 100%;
+	}
+
+	/* Show only first offer to save space, hide others */
+	.item-card-group-section .item-card .offer-container .mt-2.d-flex:nth-child(n+2) {
+		display: none !important;
+	}
+
+	/* Reduce card internal margins that waste vertical space */
+	.item-card-group-section .item-card .product-category {
+		margin-top: 0.15rem;
+		margin-bottom: 0.15rem;
+	}
+
+	.item-card-group-section .item-card .brand-container {
+		margin-bottom: 0 !important;
+		display: inline;
+	}
+
+	.item-card-group-section .item-card .brand-badge {
+		display: inline;
+		vertical-align: baseline;
+	}
+
+	/* Grid card HTML uses an inline style margin-top: 1rem on the title+icons row.
+	 * Reduce it for mobile to remove wasted whitespace between brand and title.
+	 */
+	.item-card-group-section .item-card .card-body-flex > div[style*="margin-top"] {
+		margin-top: 0 !important;
+		display: flex;
+		align-items: baseline;
+		gap: 0.35rem;
+	}
+
+	.item-card-group-section .item-card .card-body-flex > div[style*="margin-top"] > a {
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+
+	.item-card-group-section .item-card .product-title {
+		display: inline-block;
+		vertical-align: baseline;
+		margin: 0 !important;
+		line-height: 1.15;
+	}
+
+	/* Tighten text blocks (mobile) to free space for actions */
+	.item-card-group-section .item-card .product-title {
+		margin: 0 !important;
+		padding: 0 !important;
+		line-height: 1.15;
+	}
+
+	.item-card-group-section .item-card .ce-badges {
+		margin-top: 0.1rem;
+		margin-bottom: 0.1rem;
+	}
+
+	.item-card-group-section .item-card .ce-badge {
+		padding: 0.1rem 0.4rem;
+		line-height: 1.1;
+	}
+
+	.item-card-group-section .item-card .product-price {
+		margin-top: 0.15rem !important;
+		margin-bottom: 0.15rem !important;
+	}
+
+	.item-card-group-section .item-card .btn-add-to-cart-list,
+	.item-card-group-section .item-card .go-to-cart-grid,
+	.item-card-group-section .item-card .listing-qty-wrapper {
+		margin-top: 0.15rem !important;
+		margin-bottom: 0 !important;
+	}
+
+>>>>>>> b7a521d (Updated existing files)
+	/* Product detail: make cart/quantity row responsive and avoid overflow */
+	.item-cart .mb-4.d-flex {
+		flex-wrap: wrap;
+		row-gap: 0.5rem;
+	}
+
+	/* Let quantity spinner and buttons stack nicely and shrink a bit */
+	.item-cart .number-spinner {
+		max-width: 140px;
+	}
+
+	.item-cart .btn-add-to-cart,
+	.item-cart .btn-view-in-cart {
+		padding: 0.35rem 0.75rem;
+		font-size: 0.875rem; /* slightly smaller text */
+	}
+
+	/* Cart page: make quantity column responsive and avoid overflow */
+	/* Relax the fixed 25% width on the qty column and allow its content to stack */
+	.cart-table td:nth-child(2) {
+		width: auto !important;
+<<<<<<< HEAD
+=======
+		text-align: left !important;
+>>>>>>> b7a521d (Updated existing files)
+	}
+
+	.cart-table td:nth-child(2) > .d-flex {
+		flex-direction: column;
+		align-items: stretch;
+		row-gap: 0.25rem;
+	}
+
+	/* Let the spinner use full available width on very small screens */
+	.cart-table .number-spinner {
+		width: 100%;
+		max-width: none;
+	}
+
+	.cart-table .number-spinner .btn.cart-btn {
+		padding: 0.15rem 0.4rem;
+		font-size: 0.8rem;
+	}
+
+	.cart-table .number-spinner .cart-qty {
+		flex: 1 1 auto;
+		max-width: none;
+		padding: 0.15rem 0.25rem;
+		font-size: 0.8rem;
+	}
+
+	.cart-table .remove-cart-item {
+		margin-left: 0;
+		margin-top: 0;
+	}
+<<<<<<< HEAD
+=======
+
+	.cart-table .sm-item-subtotal {
+		margin-top: 0.15rem;
+		font-size: 0.85rem;
+	}
+
+	.cart-table .sm-item-subtotal .item-rate {
+		display: block;
+		opacity: 0.85;
+	}
+
+	.cart-table .item-subtotal.column-sm-view {
+		display: none !important;
+	}
+
+	/* Cart footer totals row: clean up layout on small screens */
+	tfoot.cart-tax-items th:first-child {
+		display: none;
+	}
+
+	tfoot.cart-tax-items .item-grand-total {
+		font-size: 0.9rem;
+		padding-top: 0.35rem;
+		padding-bottom: 0.35rem;
+	}
+
+	tfoot.cart-tax-items .item-grand-total.totals {
+		text-align: right !important;
+		white-space: nowrap;
+	}
+>>>>>>> b7a521d (Updated existing files)
+}

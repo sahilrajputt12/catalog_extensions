@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Shop Grid Responsive Behavior</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Demo styles matching catalog_extensions */
+        .products-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        .products-list .item-card {
+            flex: 0 0 auto;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-bottom: 1rem;
+        }
+
+        /* Extra Large Screens (1200px and up): 4 columns */
+        @media (min-width: 1200px) {
+            .products-list .item-card {
+                flex: 0 0 calc(25% - 1rem);
+                max-width: calc(25% - 1rem);
+            }
+        }
+
+        /* Large Screens (992px - 1199px): 3 columns */
+        @media (min-width: 992px) and (max-width: 1199.98px) {
+            .products-list .item-card {
+                flex: 0 0 calc(33.333% - 1rem);
+                max-width: calc(33.333% - 1rem);
+            }
+        }
+
+        /* Medium Screens (768px - 991px): 3 columns */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            .products-list .item-card {
+                flex: 0 0 calc(33.333% - 1rem);
+                max-width: calc(33.333% - 1rem);
+            }
+        }
+
+        /* Small Screens (576px - 767px): 2 columns */
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            .products-list .item-card {
+                flex: 0 0 calc(50% - 1rem);
+                max-width: calc(50% - 1rem);
+            }
+        }
+
+        /* Extra Small Screens (below 576px): 2 columns */
+        @media (max-width: 575.98px) {
+            .products-list .item-card {
+                flex: 0 0 calc(50% - 1rem);
+                max-width: calc(50% - 1rem);
+            }
+        }
+
+        /* Hide the old col-sm-4 behavior */
+        .products-list .col-sm-4 {
+            flex: 0 0 auto !important;
+            max-width: none !important;
+            width: auto !important;
+        }
+
+        /* Card styling for demo */
+        .card {
+            border: 2px solid #007bff;
+            background: #f8f9fa;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .screen-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+
+        .breakdown-info {
+            background: #e9ecef;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .breakdown-info h4 {
+            margin-bottom: 15px;
+        }
+
+        .breakdown-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-left: 4px solid #007bff;
+        }
+
+        .current-breakpoint {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="screen-info" id="screenInfo">
+        Screen: <span id="screenWidth"></span>px
+    </div>
+
+    <div class="container-fluid mt-4">
+        <h1>Web Shop Grid Responsive Behavior</h1>
+        
+        <div class="breakdown-info">
+            <h4>📱 Responsive Breakdown</h4>
+            <div class="breakdown-item">
+                <strong>🖥️ Extra Large (≥1200px):</strong> 4 columns per row (25% each)
+            </div>
+            <div class="breakdown-item">
+                <strong>💻 Large (992px - 1199px):</strong> 3 columns per row (33.33% each)
+            </div>
+            <div class="breakdown-item">
+                <strong>📱 Medium (768px - 991px):</strong> 3 columns per row (33.33% each)
+            </div>
+            <div class="breakdown-item">
+                <strong>📱 Small (576px - 767px):</strong> 2 columns per row (50% each)
+            </div>
+            <div class="breakdown-item current-breakpoint" id="currentBreakpoint">
+                <strong>📱 Extra Small (<576px):</strong> 2 columns per row (50% each)
+            </div>
+        </div>
+
+        <h3 class="mt-4">Product Grid Demo</h3>
+        <p>Resize your browser window to see the responsive behavior. The grid will show between 2-4 cards per row based on screen size.</p>
+        
+        <div class="products-list">
+            <div class="col-sm-4 item-card">
+                <div class="card">
+                    Product 1
+                </div>
+            </div>
+            <div class="col-sm-4 item-card">
+                <div class="card">
+                    Product 2
+                </div>
+            </div>
+            <div class="col-sm-4 item-card">
+                <div class="card">
+                    Product 3
+                </div>
+            </div>
+            <div class="col-sm-4 item-card">
+                <div class="card">
+                    Product 4
+                </div>
+            </div>
+            <div class="col-sm-4 item-card">
+                <div class="card">
+                    Product 5
+                </div>
+            </div>
+            <div class="col-sm-4 item-card">
+                <div class="card">
+                    Product 6
+                </div>
+            </div>
+            <div class="col-sm-4 item-card">
+                <div class="card">
+                    Product 7
+                </div>
+            </div>
+            <div class="col-sm-4 item-card">
+                <div class="card">
+                    Product 8
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <h4>🔧 Technical Implementation</h4>
+            <p>The responsive grid is implemented in <code>catalog_extensions/public/css/catalog_overrides.css</code> using CSS Flexbox with media queries:</p>
+            <ul>
+                <li><strong>Minimum:</strong> 2 cards per row (ensured on screens below 576px)</li>
+                <li><strong>Maximum:</strong> 4 cards per row (on screens 1200px and wider)</li>
+                <li><strong>Method:</strong> Flexbox layout with <code>calc()</code> for precise spacing</li>
+                <li><strong>Override:</strong> Replaces Bootstrap's <code>col-sm-4</code> behavior</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function updateScreenInfo() {
+            const width = window.innerWidth;
+            document.getElementById('screenWidth').textContent = width;
+            
+            // Update current breakpoint indicator
+            const breakpoints = document.querySelectorAll('.breakdown-item');
+            breakpoints.forEach(item => item.classList.remove('current-breakpoint'));
+            
+            let currentBreakpoint;
+            if (width >= 1200) {
+                currentBreakpoint = 0; // Extra Large
+            } else if (width >= 992) {
+                currentBreakpoint = 1; // Large
+            } else if (width >= 768) {
+                currentBreakpoint = 2; // Medium
+            } else if (width >= 576) {
+                currentBreakpoint = 3; // Small
+            } else {
+                currentBreakpoint = 4; // Extra Small
+            }
+            
+            breakpoints[currentBreakpoint].classList.add('current-breakpoint');
+        }
+
+        // Update on load and resize
+        window.addEventListener('load', updateScreenInfo);
+        window.addEventListener('resize', updateScreenInfo);
+    </script>
+</body>
+</html>

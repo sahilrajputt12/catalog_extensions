@@ -1,0 +1,47 @@
+{
+ "doctype": "DocType",
+ "name": "Item Badge",
+ "module": "Catalog Extensions",
+ "custom": 0,
+ "istable": 1,
+ "editable_grid": 1,
+ "track_changes": 0,
+ "track_seen": 0,
+ "fields": [
+  {
+   "fieldname": "badge_type",
+   "label": "Badge Type",
+   "fieldtype": "Select",
+   "options": "New\nBestseller\nOn Sale\nOffer\nClearance\nLow Stock\nFeatured",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "source",
+   "label": "Source",
+   "fieldtype": "Select",
+   "options": "Auto\nManual",
+   "default": "Auto",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valid_from",
+   "label": "Valid From",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "valid_upto",
+   "label": "Valid Upto",
+   "fieldtype": "Date"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ]
+}

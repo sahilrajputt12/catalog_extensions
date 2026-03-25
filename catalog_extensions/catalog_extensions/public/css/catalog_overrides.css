@@ -1,0 +1,319 @@
+/* Catalog Extensions: frontend overrides for webshop.
+ * Keep all website layout tweaks in this app for upgrade safety.
+ */
+
+/* Informational Consumer Offer ribbon on product cards and cart lines */
+.customer-discount-info {
+	display: inline-block;
+	margin-top: 0.35rem;
+	padding: 0.15rem 0.6rem;
+	background: linear-gradient(90deg, #0f766e, #16a34a);
+	color: #ffffff;
+	font-size: 0.75rem;
+	font-weight: 600;
+	border-radius: 0 0.5rem 0.5rem 0;
+	position: relative;
+}
+
+/* Small triangular notch to make it feel like a ribbon */
+.customer-discount-info::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 100%;
+	border-width: 0.35rem 0.4rem 0 0;
+	border-style: solid;
+	border-color: #15803d transparent transparent transparent;
+}
+
+/* Emphasize product price on listing cards */
+.item-card .product-price {
+	font-weight: 900;
+	font-size: 1.5rem;
+	color: #111827; /* near-black for strong emphasis */
+}
+
+/* (Quantity indicator and Go to Cart use default ERPNext styles on listing cards now) */
+
+/* Hide Go to Cart button on listing cards; cart icon + indicator handle navigation */
+.item-card .go-to-cart-grid {
+	display: none !important;
+}
+
+/* Hide the small cart-indicator bubble on listing cards; use qty spinner + cart icon instead */
+.item-card .cart-indicator {
+	display: none !important;
+}
+
+/* Listing quantity controls: keep them visually attached to the card body */
+.item-card .listing-qty-wrapper {
+	margin-top: 0.5rem;
+	width: 100%;
+}
+
+.item-card .listing-qty-inner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	width: 100%;
+}
+
+.item-card .listing-qty-inner .number-spinner {
+	flex: 0 1 70%;
+	max-width: 220px;
+	height: 2.25rem;
+}
+
+.item-card .listing-qty-inner .number-spinner .btn.cart-btn {
+	padding: 0 0.6rem;
+	font-size: 1rem;
+}
+
+.item-card .listing-qty-inner .number-spinner .cart-qty {
+	font-size: 1rem;
+	height: 2.25rem;
+	padding-top: 0.25rem;
+	padding-bottom: 0.25rem;
+}
+
+.item-card .listing-qty-inner .listing-go-to-cart {
+	display: inline-flex;
+	align-items: center;
+}
+
+/* Hide per-item notes textarea in cart (upgrade-safe, via custom app) */
+.cart-items .notes,
+.cart-items textarea[data-item-code] {
+	display: none !important;
+}
+
+/* Item badges on listing cards (grid + list) */
+.ce-badges {
+	margin-top: 0.25rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.ce-badge {
+	font-size: 0.7rem;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+	font-weight: 600;
+	background: #e5e7eb;
+	color: #111827;
+}
+
+.ce-badge-new {
+	background: #eef2ff;
+	color: #4f46e5;
+}
+
+.ce-badge-bestseller {
+	background: #fffbeb;
+	color: #b45309;
+}
+
+.ce-badge-on-sale,
+.ce-badge-offer,
+.ce-badge-clearance {
+	background: #fee2e2;
+	color: #b91c1c;
+}
+
+.ce-badge-low-stock {
+	background: #fef9c3;
+	color: #854d0e;
+}
+
+.ce-badge-featured {
+	background: #ecfdf3;
+	color: #15803d;
+}
+
+/* Mobile off-canvas filters styles (for dynamically injected toggle on item_group pages) */
+.offcanvas-filters {
+	transition: transform 0.25s ease-out;
+}
+
+/* Force offcanvas filters to be visible on mobile even with collapse class */
+@media (max-width: 767.98px) {
+	.offcanvas-filters,
+	.offcanvas-filters.collapse,
+	.offcanvas-filters.collapse:not(.show) {
+		display: block !important;
+	}
+}
+
+@media (max-width: 767.98px) {
+	.offcanvas-filters {
+		position: fixed;
+		top: 0;
+		left: 0;
+		height: 100vh;
+		width: 80vw;
+		max-width: 320px;
+		background-color: #ffffff;
+		z-index: 1050;
+		overflow-y: auto;
+		box-shadow: 2px 0 8px rgba(15, 23, 42, 0.25);
+		transform: translateX(-100%);
+		padding-left: 1rem;
+	}
+
+	body.filters-open .offcanvas-filters {
+		transform: translateX(0);
+	}
+
+	.filters-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: rgba(15, 23, 42, 0.4);
+		z-index: 1040;
+		display: none;
+	}
+
+	body.filters-open .filters-backdrop {
+		display: block;
+	}
+
+	/* Mobile: ensure off-canvas filters' inner content does not touch the left edge */
+	.offcanvas-filters {
+		padding-left: 1rem;
+	}
+
+	/* Product detail: make cart/quantity row responsive and avoid overflow */
+	.item-cart .mb-4.d-flex {
+		flex-wrap: wrap;
+		row-gap: 0.5rem;
+	}
+
+	/* Let quantity spinner and buttons stack nicely and shrink a bit */
+	.item-cart .number-spinner {
+		max-width: 140px;
+	}
+
+	.item-cart .btn-add-to-cart,
+	.item-cart .btn-view-in-cart {
+		padding: 0.35rem 0.75rem;
+		font-size: 0.875rem; /* slightly smaller text */
+	}
+
+	/* Cart page: make quantity column responsive and avoid overflow */
+	/* Relax the fixed 25% width on the qty column and allow its content to stack */
+	.cart-table td:nth-child(2) {
+		width: auto !important;
+	}
+
+	.cart-table td:nth-child(2) > .d-flex {
+		flex-direction: column;
+		align-items: stretch;
+		row-gap: 0.25rem;
+	}
+
+	/* Let the spinner use full available width on very small screens */
+	.cart-table .number-spinner {
+		width: 100%;
+		max-width: none;
+	}
+
+	.cart-table .number-spinner .btn.cart-btn {
+		padding: 0.15rem 0.4rem;
+		font-size: 0.8rem;
+	}
+
+	.cart-table .number-spinner .cart-qty {
+		flex: 1 1 auto;
+		max-width: none;
+		padding: 0.15rem 0.25rem;
+		font-size: 0.8rem;
+	}
+
+}
+
+/* ============================================
+   IMAGE HOVER ZOOM STYLES
+   ============================================ */
+
+/* Zoom container wraps the product image */
+.zoom-container {
+	position: relative;
+	display: inline-block;
+	cursor: crosshair;
+}
+
+/* The zoom lens - follows cursor over the image */
+.zoom-lens {
+	position: absolute;
+	width: 100px;
+	height: 100px;
+	border: 2px solid rgba(255, 255, 255, 0.8);
+	border-radius: 50%;
+	background-color: rgba(255, 255, 255, 0.2);
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+	pointer-events: none;
+	display: none;
+	z-index: 100;
+	transition: opacity 0.15s ease;
+}
+
+/* The zoom result - magnified view displayed next to image */
+.zoom-result {
+	position: absolute;
+	top: 0;
+	left: 105%;
+	width: 400px;
+	height: 400px;
+	border: 1px solid #e5e7eb;
+	border-radius: 8px;
+	background-repeat: no-repeat;
+	display: none;
+	z-index: 200;
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+	background-color: #ffffff;
+}
+
+/* When zoom is active, adjust image slightly */
+.zoom-container.zoom-active .product-image img,
+.zoom-container.zoom-active .website-image {
+	opacity: 0.9;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 991.98px) {
+	.zoom-result {
+		width: 300px;
+		height: 300px;
+		left: 100%;
+		margin-left: 10px;
+	}
+}
+
+@media (max-width: 767.98px) {
+	/* On mobile, show zoom result below the image */
+	.zoom-result {
+		position: relative;
+		left: auto;
+		top: auto;
+		width: 100%;
+		height: 300px;
+		margin-top: 10px;
+		margin-left: 0;
+	}
+
+	.zoom-lens {
+		width: 80px;
+		height: 80px;
+	}
+}
+
+/* Hide the old modal zoom styles - we use hover now */
+.image-zoom-view .zoom-controls,
+.image-zoom-view .zoom-level {
+	display: none !important;
+}
+
