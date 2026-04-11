@@ -202,7 +202,7 @@ function applyCartStockGuard() {
 
 		let note = row.querySelector(".ce-cart-stock-note");
 		const shouldShowNote =
-			stockData.stock_state === "low_stock" ||
+			(stockData.stock_state === "low_stock" && Boolean(stockData.stock_message)) ||
 			(stockData.stock_state === "out_of_stock" && currentQty > 0);
 
 		if (!shouldShowNote) {

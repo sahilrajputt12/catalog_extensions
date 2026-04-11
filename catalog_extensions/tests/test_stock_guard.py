@@ -18,6 +18,7 @@ class StockGuardTestCase(TestCase):
 
 		self.assertEqual(result["stock_state"], "out_of_stock")
 		self.assertEqual(result["stock_message"], "Out of stock")
+		self.assertFalse(result["show_stock_qty"])
 		self.assertFalse(result["can_add_to_cart"])
 		self.assertFalse(result["can_increase_qty"])
 
@@ -30,13 +31,33 @@ class StockGuardTestCase(TestCase):
 		self.assertTrue(result["can_add_to_cart"])
 		self.assertFalse(result["can_increase_qty"])
 
-	def test_low_stock_uses_amazon_style_message(self):
+	def test_low_stock_uses_amazon_style_message_when_stock_quantity_enabled(self):
 		result = _build_stock_guard_metadata(
-			available_qty=3, current_qty=1, on_backorder=False, is_stock_item=True
+			available_qty=3,
+			current_qty=1,
+			on_backorder=False,
+			is_stock_item=True,
+			show_stock_qty=True,
 		)
 
 		self.assertEqual(result["stock_state"], "low_stock")
 		self.assertEqual(result["stock_message"], "Only 3 left in stock")
+		self.assertTrue(result["show_stock_qty"])
+		self.assertTrue(result["can_add_to_cart"])
+		self.assertTrue(result["can_increase_qty"])
+
+	def test_low_stock_hides_quantity_message_when_stock_quantity_disabled(self):
+		result = _build_stock_guard_metadata(
+			available_qty=3,
+			current_qty=1,
+			on_backorder=False,
+			is_stock_item=True,
+			show_stock_qty=False,
+		)
+
+		self.assertEqual(result["stock_state"], "low_stock")
+		self.assertEqual(result["stock_message"], "")
+		self.assertFalse(result["show_stock_qty"])
 		self.assertTrue(result["can_add_to_cart"])
 		self.assertTrue(result["can_increase_qty"])
 

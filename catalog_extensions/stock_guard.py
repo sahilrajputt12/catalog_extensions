@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from webshop.webshop.doctype.webshop_settings.webshop_settings import show_quantity_in_website
 from webshop.webshop.shopping_cart import cart as core_cart
 from webshop.webshop.utils.product import get_web_item_qty_in_stock
 
@@ -16,7 +17,9 @@ def _translate(text: str) -> str:
 		return text
 
 
-def _build_stock_guard_metadata(*, available_qty=None, current_qty=0, on_backorder=False, is_stock_item=True):
+def _build_stock_guard_metadata(
+	*, available_qty=None, current_qty=0, on_backorder=False, is_stock_item=True, show_stock_qty=False
+):
 	current_qty = flt(current_qty)
 	available_qty = None if available_qty is None else flt(available_qty)
 
@@ -26,6 +29,7 @@ def _build_stock_guard_metadata(*, available_qty=None, current_qty=0, on_backord
 			"max_orderable_qty": None,
 			"stock_state": "backorder",
 			"stock_message": _translate("Available on backorder"),
+			"show_stock_qty": bool(show_stock_qty),
 			"can_add_to_cart": True,
 			"can_increase_qty": True,
 		}
@@ -36,6 +40,7 @@ def _build_stock_guard_metadata(*, available_qty=None, current_qty=0, on_backord
 			"max_orderable_qty": None,
 			"stock_state": "in_stock",
 			"stock_message": "",
+			"show_stock_qty": bool(show_stock_qty),
 			"can_add_to_cart": True,
 			"can_increase_qty": True,
 		}
@@ -49,6 +54,7 @@ def _build_stock_guard_metadata(*, available_qty=None, current_qty=0, on_backord
 			"max_orderable_qty": max_orderable_qty,
 			"stock_state": "out_of_stock",
 			"stock_message": _translate("Out of stock"),
+			"show_stock_qty": bool(show_stock_qty),
 			"can_add_to_cart": current_qty > 0,
 			"can_increase_qty": False,
 		}
@@ -58,7 +64,12 @@ def _build_stock_guard_metadata(*, available_qty=None, current_qty=0, on_backord
 			"available_qty": available_qty,
 			"max_orderable_qty": max_orderable_qty,
 			"stock_state": "low_stock",
-			"stock_message": _translate("Only {0} left in stock").format(int(available_qty)),
+			"stock_message": (
+				_translate("Only {0} left in stock").format(int(available_qty))
+				if show_stock_qty
+				else ""
+			),
+			"show_stock_qty": bool(show_stock_qty),
 			"can_add_to_cart": True,
 			"can_increase_qty": current_qty < max_orderable_qty,
 		}
@@ -68,6 +79,7 @@ def _build_stock_guard_metadata(*, available_qty=None, current_qty=0, on_backord
 		"max_orderable_qty": max_orderable_qty,
 		"stock_state": "in_stock",
 		"stock_message": _translate("In stock"),
+		"show_stock_qty": bool(show_stock_qty),
 		"can_add_to_cart": True,
 		"can_increase_qty": current_qty < max_orderable_qty,
 	}
@@ -84,12 +96,14 @@ def get_stock_guard_data(item_code: str, current_qty=0):
 	if stock_status:
 		available_qty = stock_status.get("stock_qty")
 		is_stock_item = bool(stock_status.get("is_stock_item", 1))
+	show_stock_qty = bool(show_quantity_in_website())
 
 	metadata = _build_stock_guard_metadata(
 		available_qty=available_qty,
 		current_qty=current_qty,
 		on_backorder=on_backorder,
 		is_stock_item=is_stock_item,
+		show_stock_qty=show_stock_qty,
 	)
 	metadata["on_backorder"] = on_backorder
 	metadata["is_stock_item"] = is_stock_item

@@ -43,6 +43,14 @@ RETURN_RECORD_IN_TRANSIT_STATUSES = {"IN_TRANSIT"}
 PORTAL_RETURN_REQUEST_MARKER = "[catalog_extensions_return_request]"
 
 
+def _get_conf_bool(*keys: str, default: int = 1) -> int:
+    for key in keys:
+        value = frappe.conf.get(key)
+        if value is not None:
+            return cint(value)
+    return cint(default)
+
+
 @contextmanager
 def run_as(user: str):
     session = getattr(frappe, "session", None)
@@ -92,8 +100,16 @@ def get_filter_facets(
     
     # Check site config for filter visibility (default to enabled)
     # Use flat keys: catalog_extensions_show_offers_filter
-    show_offers = cint(frappe.conf.get("catalog_extensions_show_offers_filter", 1))
-    show_badges = cint(frappe.conf.get("catalog_extensions_show_badges_filter", 1))
+    show_offers = _get_conf_bool(
+        "catalog_extensions_show_offers_filter",
+        "catalog_extensions.show_offers_filter",
+        default=1,
+    )
+    show_badges = _get_conf_bool(
+        "catalog_extensions_show_badges_filter",
+        "catalog_extensions.show_badges_filter",
+        default=1,
+    )
     
     brand_context = get_brand_filter_context()
     brand_base_where, brand_base_params = _build_facet_where_clause(
@@ -657,6 +673,12 @@ def get_item_badges(item_codes: Any) -> Dict[str, List[Dict[str, Any]]]:
     Used by frontend JS to render badges on product cards.
     """
 
+    show_badges = _get_conf_bool(
+        "catalog_extensions_show_badges_filter",
+        "catalog_extensions.show_badges_filter",
+        default=1,
+    )
+
     # Normalize input (may be JSON string)
     if isinstance(item_codes, str):
         try:
@@ -671,6 +693,9 @@ def get_item_badges(item_codes: Any) -> Dict[str, List[Dict[str, Any]]]:
 
     if not item_codes:
         return {}
+
+    if not show_badges:
+        return {code: [] for code in item_codes}
 
     website_items = frappe.get_all(
         "Website Item",

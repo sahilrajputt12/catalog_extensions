@@ -63,8 +63,7 @@ frappe.ready(function () {
     var state = stockData && stockData.stock_state;
     var message = stockData && stockData.stock_message;
     var shouldShow =
-      state === 'low_stock' ||
-      (state === 'out_of_stock' && currentQty > 0);
+      state === 'out_of_stock' && currentQty > 0;
 
     if (!shouldShow || !message) return;
 

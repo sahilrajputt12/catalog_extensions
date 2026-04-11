@@ -17,6 +17,7 @@ web_include_css = [
 ]
 
 web_include_js = [
+    "/assets/catalog_extensions/js/default_grid_view.js",
     "/assets/catalog_extensions/js/catalog_facets.js",
     "/assets/catalog_extensions/js/product_offers.js",
     "/assets/catalog_extensions/js/product_brand.js",
