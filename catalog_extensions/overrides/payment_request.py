@@ -176,7 +176,7 @@ class PaymentRequest(WebshopPaymentRequest):
                     automate_webshop_order_fulfillment_if_allowed(ref_doc)
             except Exception:
                 frappe.log_error(
-                    title="Catalog fulfillment automation failed",
+                    title="Catalog order-flow automation failed",
                     message=frappe.get_traceback(),
                 )
 

@@ -35,9 +35,12 @@ function fetchStockGuardData(itemCode, callback, options) {
 		method: "webshop.webshop.shopping_cart.product_info.get_product_info_for_website",
 		args: { item_code: itemCode, skip_quotation_creation: false },
 		callback: function (r) {
-			const productInfo = r && r.message ? (r.message.product_info || {}) : {};
-			stockGuardCache[itemCode] = productInfo;
-			callback(productInfo);
+			const payload = {
+				product_info: r && r.message ? (r.message.product_info || {}) : {},
+				cart_settings: r && r.message ? (r.message.cart_settings || {}) : {},
+			};
+			stockGuardCache[itemCode] = payload;
+			callback(payload);
 		},
 	});
 }
@@ -52,8 +55,8 @@ function applyProductStockGuard() {
 		return;
 	}
 
-	fetchStockGuardData(itemCode, function (productInfo) {
-		renderProductStockState(productInfo);
+	fetchStockGuardData(itemCode, function (stockData) {
+		renderProductStockState(stockData);
 	});
 
 	document.addEventListener(
@@ -113,13 +116,16 @@ function applyProductStockGuard() {
 	);
 }
 
-function renderProductStockState(productInfo) {
+function renderProductStockState(stockData) {
 	const stockNode = document.querySelector(".item-stock");
 	const itemCart = document.querySelector(".item-cart");
 	if (!stockNode || !itemCart) {
 		return;
 	}
 
+	const productInfo = stockData && stockData.product_info ? stockData.product_info : {};
+	const cartSettings = stockData && stockData.cart_settings ? stockData.cart_settings : {};
+	const showStockAvailability = Boolean(cartSettings.show_stock_availability);
 	const stockState = productInfo.stock_state || "";
 	const stockMessage = productInfo.stock_message || "";
 	const canAddToCart = productInfo.can_add_to_cart !== false;
@@ -127,7 +133,10 @@ function renderProductStockState(productInfo) {
 	const maxOrderableQty = parseFloat(productInfo.max_orderable_qty);
 	const useCoreOutOfStockView = stockState === "out_of_stock" && !productInfo.qty;
 
-	if (stockMessage && !useCoreOutOfStockView) {
+	if (!showStockAvailability) {
+		stockNode.innerHTML = "";
+		stockNode.classList.add("hide");
+	} else if (stockMessage && !useCoreOutOfStockView) {
 		stockNode.innerHTML = renderStockAlert(stockMessage, stockState);
 		stockNode.classList.remove("hide");
 	}
@@ -181,29 +190,35 @@ function applyCartStockGuard() {
 			return;
 		}
 
+		const productInfo = stockData.product_info || {};
+		const cartSettings = stockData.cart_settings || {};
+		const showStockAvailability = Boolean(cartSettings.show_stock_availability);
 		const input = row.querySelector(".cart-qty");
 		const upButton = row.querySelector(".cart-btn[data-dir='up']");
 		const subtitle = row.querySelector(".item-subtitle");
-		const maxOrderable = parseFloat(stockData.max_orderable_qty || "");
+		const maxOrderable = parseFloat(productInfo.max_orderable_qty || "");
 		const currentQty = input ? parseFloat(input.value || "0") : 0;
-		const blocked = stockData.can_increase_qty === false || (!Number.isNaN(maxOrderable) && currentQty >= maxOrderable);
+		const blocked = productInfo.can_increase_qty === false || (!Number.isNaN(maxOrderable) && currentQty >= maxOrderable);
 
 		if (input) {
 			input.dataset.maxOrderableQty = Number.isNaN(maxOrderable) ? "" : String(maxOrderable);
-			input.dataset.stockMessage = stockData.stock_message || "";
-			input.dataset.stockState = stockData.stock_state || "";
+			input.dataset.stockMessage = productInfo.stock_message || "";
+			input.dataset.stockState = productInfo.stock_state || "";
 		}
 
 		if (upButton) {
 			upButton.disabled = blocked;
 			upButton.classList.toggle("disabled", blocked);
-			upButton.dataset.stockMessage = stockData.stock_message || "";
+			upButton.dataset.stockMessage = productInfo.stock_message || "";
 		}
 
 		let note = row.querySelector(".ce-cart-stock-note");
 		const shouldShowNote =
-			(stockData.stock_state === "low_stock" && Boolean(stockData.stock_message)) ||
-			(stockData.stock_state === "out_of_stock" && currentQty > 0);
+			showStockAvailability &&
+			(
+				(productInfo.stock_state === "low_stock" && Boolean(productInfo.stock_message)) ||
+				(productInfo.stock_state === "out_of_stock" && currentQty > 0)
+			);
 
 		if (!shouldShowNote) {
 			if (note) {
@@ -220,8 +235,8 @@ function applyCartStockGuard() {
 			}
 		}
 
-		note.className = "ce-cart-stock-note ce-cart-stock-note--" + (stockData.stock_state || "low_stock");
-		note.textContent = stockData.stock_message || __("Out of stock");
+		note.className = "ce-cart-stock-note ce-cart-stock-note--" + (productInfo.stock_state || "low_stock");
+		note.textContent = productInfo.stock_message || __("Out of stock");
 	};
 
 	const attach = function () {

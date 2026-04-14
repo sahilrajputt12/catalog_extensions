@@ -94,12 +94,8 @@ doc_events = {
     },
     "Delivery Note": {
         "on_submit": [
-            "catalog_extensions.order_fulfillment.sync_webshop_shipment_after_delivery_note_submit",
             "catalog_extensions.api.sync_portal_refund_processing_after_return_receipt",
         ],
-    },
-    "Shipment": {
-        "validate": "catalog_extensions.order_fulfillment.apply_webshop_shipment_defaults",
     },
 }
 

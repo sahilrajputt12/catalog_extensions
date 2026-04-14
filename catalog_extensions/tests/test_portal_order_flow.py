@@ -111,7 +111,10 @@ class DummyShipment:
         self.shipment_parcel = values.get("shipment_parcel", [])
         self._values = {
             "service_provider": values.get("service_provider"),
+            "external_order_id": values.get("external_order_id"),
+            "external_shipment_id": values.get("external_shipment_id"),
             "shiprocket_shipment_id": values.get("shiprocket_shipment_id"),
+            "shiprocket_order_id": values.get("shiprocket_order_id"),
             "status": values.get("status", "Booked"),
             "tracking_status": values.get("tracking_status"),
             "tracking_status_info": values.get("tracking_status_info"),
@@ -213,6 +216,10 @@ class DummyQuotation:
         self.submitted = True
         self.docstatus = 1
         return self
+
+
+class NegativeStockError(Exception):
+    pass
 
 
 class DummyReturnDoc:
@@ -636,54 +643,59 @@ class PortalOrderFlowTestCase(TestCase):
         self.assertEqual(pr.reference_doctype, "Sales Order")
         automate.assert_called_once_with(sales_order)
 
-    def test_fulfillment_automation_creates_delivery_note_and_shipment_and_queues_pickup(self):
+    def test_fulfillment_automation_creates_delivery_note_only_and_leaves_shipping_to_shipping_flow(self):
         order_doc = DummyOrder(name="SO-TEST-0009")
         delivery_note = MagicMock()
         delivery_note.name = "DN-TEST-0001"
-        shipment_doc = DummyShipment(
-            name="SHIP-TEST-0001",
-            shipment_delivery_note=[SimpleNamespace(delivery_note=delivery_note.name)],
-            shipment_parcel=[{"weight": 0.5, "count": 1}],
-        )
 
         with (
             patch("catalog_extensions.order_fulfillment._get_delivery_note_doc", return_value=(delivery_note, True)),
-            patch("catalog_extensions.order_fulfillment._get_shipment_doc", return_value=(shipment_doc, True)),
-            patch(
-                "catalog_extensions.order_fulfillment._get_best_service_info",
-                return_value={"service_provider": "Shiprocket", "total_price": 99},
-            ),
-            patch("catalog_extensions.order_fulfillment._queue_dispatch", return_value={"queued": True}),
-            patch("catalog_extensions.order_fulfillment.is_doctype_available", return_value=True),
-            patch("catalog_extensions.order_fulfillment.frappe.enqueue") as enqueue_job,
         ):
             result = order_fulfillment.automate_paid_webshop_order_fulfillment(order_doc)
 
         self.assertEqual(result["delivery_note"], delivery_note.name)
-        self.assertEqual(result["shipment"], shipment_doc.name)
-        self.assertTrue(result["dispatch_queued"])
-        self.assertTrue(result["pickup_queued"])
-        enqueue_job.assert_called_once()
+        self.assertIsNone(result["shipment"])
+        self.assertFalse(result["dispatch_queued"])
+        self.assertFalse(result["pickup_queued"])
 
-    def test_fulfillment_automation_adds_manual_followup_when_no_shipping_service_available(self):
+    def test_fulfillment_automation_no_longer_adds_shipping_followup_comments(self):
         order_doc = DummyOrder(name="SO-TEST-0010")
         delivery_note = MagicMock()
         delivery_note.name = "DN-TEST-0002"
-        shipment_doc = DummyShipment(name="SHIP-TEST-0002")
 
         with (
             patch("catalog_extensions.order_fulfillment._get_delivery_note_doc", return_value=(delivery_note, True)),
-            patch("catalog_extensions.order_fulfillment._get_shipment_doc", return_value=(shipment_doc, True)),
-            patch("catalog_extensions.order_fulfillment._get_best_service_info", return_value=None),
-            patch("catalog_extensions.order_fulfillment.frappe.db.exists", return_value=False),
-            patch("catalog_extensions.order_fulfillment.is_doctype_available", return_value=True),
         ):
             result = order_fulfillment.automate_paid_webshop_order_fulfillment(order_doc)
 
-        self.assertEqual(result["shipment"], shipment_doc.name)
+        self.assertIsNone(result["shipment"])
         self.assertFalse(result["dispatch_queued"])
+        self.assertEqual(order_doc.comments, [])
+
+    def test_fulfillment_automation_marks_insufficient_stock_without_raising(self):
+        order_doc = DummyOrder(name="SO-TEST-0010")
+
+        with (
+            patch(
+                "catalog_extensions.order_fulfillment._get_delivery_note_doc",
+                side_effect=order_fulfillment.DeliveryNoteStockBlockedError(
+                    "DN-TEST-STOCK-0001",
+                    True,
+                    NegativeStockError("Insufficient Stock"),
+                ),
+            ),
+            patch("catalog_extensions.order_fulfillment.frappe.log_error") as log_error,
+        ):
+            result = order_fulfillment.automate_paid_webshop_order_fulfillment(order_doc)
+
+        self.assertEqual(result["delivery_note"], "DN-TEST-STOCK-0001")
+        self.assertTrue(result["delivery_note_created"])
+        self.assertTrue(result["stock_blocked"])
+        self.assertEqual(result["shipment"], None)
         self.assertEqual(len(order_doc.comments), 1)
         self.assertIn(order_fulfillment.FULFILLMENT_MARKER, order_doc.comments[0][1])
+        self.assertIn("stock is insufficient", order_doc.comments[0][1])
+        log_error.assert_called_once()
 
     def test_shipment_defaults_fill_mandatory_fields_for_blank_parcel_rows(self):
         order_doc = DummyOrder(name="SO-TEST-0011")
@@ -852,7 +864,12 @@ class PortalOrderFlowTestCase(TestCase):
         automate_shipment.assert_called_once_with(order_doc, delivery_note)
 
     def test_attempt_pickup_after_dispatch_adds_followup_when_remote_dispatch_not_ready(self):
-        shipment_doc = DummyShipment(name="SHIP-TEST-0003", service_provider="Shiprocket", shiprocket_shipment_id=None)
+        shipment_doc = DummyShipment(
+            name="SHIP-TEST-0003",
+            service_provider="Shiprocket",
+            shiprocket_shipment_id=None,
+            external_shipment_id="EXT-SHIP-3",
+        )
         order_doc = DummyOrder(name="SO-TEST-0011")
 
         with (
@@ -1010,20 +1027,11 @@ class PortalOrderFlowTestCase(TestCase):
 
     def test_portal_return_request_degrades_when_optional_shipping_extension_is_missing(self):
         order_doc = DummyOrder(name="SO-TEST-RET-0001")
-        shipment_doc = DummyShipment(name="SHIP-TEST-RET-0001", service_provider="Shiprocket")
-        shipment_doc._values["shiprocket_order_id"] = "SR-ORDER-1"
-        return_doc = DummyReturnDoc(
-            items=[
-                frappe._dict(
-                    {
-                        "sales_invoice_item": "SINV-ITEM-1",
-                        "qty": -1,
-                        "stock_qty": -1,
-                        "conversion_factor": 1,
-                        "item_code": "ITEM-001",
-                    }
-                )
-            ]
+        shipment_doc = DummyShipment(
+            name="SHIP-TEST-RET-0001",
+            service_provider="Shiprocket",
+            external_order_id="SR-ORDER-1",
+            shiprocket_order_id=None,
         )
         context = self.make_context(
             order_doc=order_doc,
@@ -1041,23 +1049,22 @@ class PortalOrderFlowTestCase(TestCase):
         )
 
         with (
-            patch("erpnext.controllers.sales_and_purchase_return.make_return_doc", return_value=return_doc),
             patch("catalog_extensions.api._get_portal_order_doc", return_value=order_doc),
             patch("catalog_extensions.api._build_portal_order_tracking_context", return_value=context),
             patch("catalog_extensions.api._build_status_signals", return_value={"completed": True}),
             patch("catalog_extensions.api._get_return_target_shipment", return_value={"name": shipment_doc.name}),
-            patch("catalog_extensions.api.is_optional_app_installed", return_value=False),
-            patch("catalog_extensions.api.frappe.get_doc", return_value=shipment_doc),
+            patch(
+                "raftor_shippinghq.api.returns.submit_return_request",
+                return_value={"return_request": "RMA-00001", "message": "Your return request has been submitted for review."},
+            ),
             patch("catalog_extensions.api.run_as", return_value=nullcontext()),
         ):
             result = api.create_portal_return_request(order_doc.name, order_doc.doctype)
 
         self.assertTrue(result["ok"])
-        self.assertIsNone(result["return_shipment"])
-        self.assertIn("Reverse pickup will be arranged manually", result["message"])
-        self.assertTrue(return_doc.inserted)
-        self.assertTrue(any("erpnext_shipping_extended is not installed" in comment for _, comment in return_doc.comments))
-        self.assertTrue(any("erpnext_shipping_extended is not installed" in comment for _, comment in order_doc.comments))
+        self.assertEqual(result["return_request"], "RMA-00001")
+        self.assertIn("submitted for review", result["message"])
+        self.assertTrue(any("requested a return for approval" in comment for _, comment in order_doc.comments))
 
 
 class CheckoutSettingsSemanticsTestCase(TestCase):

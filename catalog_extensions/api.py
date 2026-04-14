@@ -40,6 +40,16 @@ RETURN_ITEM_FLAG_FIELDS = (
 )
 RETURN_RECORD_RECEIVED_STATUSES = {"DELIVERED", "CLOSED"}
 RETURN_RECORD_IN_TRANSIT_STATUSES = {"IN_TRANSIT"}
+RETURN_APPROVAL_ACTIVE_STATUSES = {
+    "REQUESTED",
+    "UNDER_REVIEW",
+    "APPROVED_FOR_RETURN",
+    "RETURN_ORDER_CREATED",
+    "REVERSE_SHIPMENT_CREATED",
+    "IN_TRANSIT",
+    "RECEIVED",
+}
+RETURN_APPROVAL_RECEIVED_STATUSES = {"RECEIVED", "APPROVED_ON_RECEIPT", "REJECTED_ON_RECEIPT", "CLOSED"}
 PORTAL_RETURN_REQUEST_MARKER = "[catalog_extensions_return_request]"
 
 
@@ -1722,11 +1732,13 @@ NORMALIZED_STATUS_META = {
     "completed": ("Completed", "Your order has been delivered and completed."),
     "delivery_exception": ("Delivery exception", "There is a delivery issue and the shipment needs attention."),
     "cancelled": ("Cancelled", "This order was cancelled before completion."),
-    "return_requested": ("Return requested", "Your return request has been created and is awaiting reverse-shipment creation."),
+    "return_requested": ("Return requested", "Your return request has been submitted and is under review."),
     "return_shipment_created": ("Return shipment created", "A reverse shipment has been created for your return."),
     "return_in_transit": ("Return in transit", "The return shipment is on its way back."),
     "return_received": ("Return received", "The returned items have been received and are being verified."),
     "return_completed": ("Return completed", "Your return has been processed successfully."),
+    "return_rejected": ("Return rejected", "Your return request was rejected after review."),
+    "return_cancelled": ("Return cancelled", "Your return request was cancelled."),
     "refund_processing": ("Refund processing", "Your refund is being processed after return receipt."),
     "refunded": ("Refunded", "The refund or credit settlement has been completed."),
 }
@@ -2094,8 +2106,39 @@ def _get_return_records_for_shipments(shipment_names: List[str]) -> List[Dict[st
             "return_type",
             "return_reason",
             "return_status",
+            "external_return_order_id",
+            "external_return_shipment_id",
+            "provider_reference",
+            "shiprocket_order_id",
+            "shiprocket_shipment_id",
             "reverse_awb",
             "pickup_id",
+            "modified",
+            "creation",
+        ],
+        order_by="modified desc, creation desc",
+    )
+    return [dict(row) for row in rows]
+
+
+def _get_return_approval_requests_for_shipments(shipment_names: List[str]) -> List[Dict[str, Any]]:
+    shipment_names = [name for name in shipment_names if name]
+    if not shipment_names or not frappe.db.exists("DocType", "Return Approval Request"):
+        return []
+
+    rows = frappe.get_all(
+        "Return Approval Request",
+        filters={"original_shipment": ["in", shipment_names]},
+        fields=[
+            "name",
+            "original_shipment",
+            "sales_invoice",
+            "return_invoice",
+            "request_status",
+            "reverse_shipment",
+            "return_shipment_record",
+            "provider_reference",
+            "received_on",
             "modified",
             "creation",
         ],
@@ -2574,11 +2617,25 @@ def _build_status_signals(context: Dict[str, Any]) -> Dict[str, Any]:
     return_record_statuses = [
         str(record.get("return_status") or "").upper() for record in return_records if record.get("return_status")
     ]
+    return_approval_requests = context.get("return_approval_requests", [])
+    return_approval_statuses = [
+        str(request.get("request_status") or "").upper()
+        for request in return_approval_requests
+        if request.get("request_status")
+    ]
     refund_requested = _has_portal_comment(order_doc.doctype, order_doc.name, PORTAL_REFUND_REQUEST_MARKER)
-    return_requested = bool(context["draft_return_invoices"] or return_invoices or return_records)
-    return_shipment_created = bool(return_records or return_shipments)
+    return_requested = bool(return_approval_requests or context["draft_return_invoices"] or return_invoices or return_records)
+    return_shipment_created = bool(
+        return_records
+        or return_shipments
+        or any(
+            status in {"REVERSE_SHIPMENT_CREATED", "IN_TRANSIT", "RECEIVED", "APPROVED_ON_RECEIPT", "REJECTED_ON_RECEIPT", "CLOSED"}
+            for status in return_approval_statuses
+        )
+    )
     return_in_transit = bool(
         any(status in RETURN_RECORD_IN_TRANSIT_STATUSES for status in return_record_statuses)
+        or any(status == "IN_TRANSIT" for status in return_approval_statuses)
         or any(
             status and status not in ("Delivered", "Returned", "Lost")
             for status in return_tracking_statuses
@@ -2587,9 +2644,15 @@ def _build_status_signals(context: Dict[str, Any]) -> Dict[str, Any]:
     return_received = bool(
         return_delivery_notes
         or any(status in RETURN_RECORD_RECEIVED_STATUSES for status in return_record_statuses)
+        or any(status in RETURN_APPROVAL_RECEIVED_STATUSES for status in return_approval_statuses)
         or any(status == "Delivered" for status in return_tracking_statuses)
     )
-    return_completed = bool(return_received and return_invoices)
+    return_completed = bool(
+        any(status in {"APPROVED_ON_RECEIPT", "CLOSED"} for status in return_approval_statuses)
+        or (return_received and return_invoices)
+    )
+    return_rejected = bool(any(status in {"REJECTED", "REJECTED_ON_RECEIPT"} for status in return_approval_statuses))
+    return_cancelled = bool(any(status == "CANCELLED" for status in return_approval_statuses))
     refund_processing = bool(refund_requested and return_received and not cancelled)
     return_window_end_date = _get_return_window_end_date(context)
     return_window_open = bool(
@@ -2624,12 +2687,15 @@ def _build_status_signals(context: Dict[str, Any]) -> Dict[str, Any]:
         "return_record_count": len(return_records),
         "return_shipment_count": len(return_shipments),
         "return_record_statuses": return_record_statuses,
+        "return_approval_statuses": return_approval_statuses,
         "return_tracking_statuses": return_tracking_statuses,
         "has_return_requested": return_requested,
         "has_return_shipment_created": return_shipment_created,
         "return_in_transit": return_in_transit,
         "has_return_received": return_received,
         "return_completed": return_completed,
+        "return_rejected": return_rejected,
+        "return_cancelled": return_cancelled,
         "refund_requested": refund_requested,
         "refund_pending": refund_processing,
         "refund_settled": bool(return_invoices and settled_return_invoices and not return_invoices_with_balance),
@@ -2653,6 +2719,10 @@ def _resolve_normalized_status(context: Dict[str, Any]) -> Dict[str, Any]:
 
     if signals["cancelled"]:
         code = "cancelled"
+    elif return_active and signals.get("return_cancelled"):
+        code = "return_cancelled"
+    elif return_active and signals.get("return_rejected"):
+        code = "return_rejected"
     elif return_active and payment_active and signals["refund_settled"]:
         code = "refunded"
     elif return_active and payment_active and signals["refund_pending"]:
@@ -2815,6 +2885,7 @@ def _build_cancelled_milestones(context: Dict[str, Any]) -> List[Dict[str, Any]]
 
 def _build_return_milestones(context: Dict[str, Any], status_code: str) -> List[Dict[str, Any]]:
     order_doc = context["order_doc"]
+    return_request = context["return_approval_requests"][0] if context.get("return_approval_requests") else {}
     return_record = context["return_records"][0] if context.get("return_records") else {}
     return_invoice = context["return_invoices"][0] if context["return_invoices"] else {}
     return_shipment = context["return_shipments"][0] if context["return_shipments"] else {}
@@ -2826,6 +2897,8 @@ def _build_return_milestones(context: Dict[str, Any], status_code: str) -> List[
         "return_in_transit",
         "return_received",
         "return_completed",
+        "return_rejected",
+        "return_cancelled",
         "refund_processing",
         "refunded",
     ]
@@ -2850,14 +2923,14 @@ def _build_return_milestones(context: Dict[str, Any], status_code: str) -> List[
             "label": "Return requested",
             "done": _status_done("return_requested", status_code, ordered_codes),
             "active": status_code == "return_requested",
-            "date": _pick_first_non_empty(return_invoice.get("posting_date"), return_invoice.get("modified")),
+            "date": _pick_first_non_empty(return_request.get("creation"), return_request.get("modified"), return_invoice.get("posting_date"), return_invoice.get("modified")),
         },
         {
             "key": "return_shipment",
             "label": "Return shipment",
             "done": _status_done("return_in_transit", status_code, ordered_codes),
             "active": status_code in ("return_shipment_created", "return_in_transit"),
-            "date": _pick_first_non_empty(return_shipment.get("pickup_date"), return_record.get("modified")),
+            "date": _pick_first_non_empty(return_shipment.get("pickup_date"), return_request.get("modified"), return_record.get("modified")),
             "shipment_group": "return",
             "show_shipments": bool(context["return_shipments"]),
         },
@@ -2866,14 +2939,14 @@ def _build_return_milestones(context: Dict[str, Any], status_code: str) -> List[
             "label": "Return received",
             "done": _status_done("return_received", status_code, ordered_codes),
             "active": status_code == "return_received",
-            "date": _pick_first_non_empty(return_record.get("modified"), return_invoice.get("modified")),
+            "date": _pick_first_non_empty(return_request.get("received_on"), return_record.get("modified"), return_invoice.get("modified")),
         },
         {
             "key": "return_completed",
             "label": "Return completed",
             "done": _status_done("return_completed", status_code, ordered_codes),
             "active": status_code == "return_completed",
-            "date": _pick_first_non_empty(return_invoice.get("modified"), return_invoice.get("posting_date")),
+            "date": _pick_first_non_empty(return_request.get("modified"), return_invoice.get("modified"), return_invoice.get("posting_date")),
         },
         {
             "key": "refund",
@@ -2896,6 +2969,8 @@ def _build_tracking_milestones(context: Dict[str, Any], status_code: str) -> Lis
         "return_in_transit",
         "return_received",
         "return_completed",
+        "return_rejected",
+        "return_cancelled",
         "refund_processing",
         "refunded",
     }:
@@ -3012,6 +3087,7 @@ def _build_portal_order_tracking_context(order_doc) -> Dict[str, Any]:
     draft_return_delivery_notes = _get_return_delivery_notes([dn["name"] for dn in delivery_notes], docstatus=0)
     return_shipments = _get_shipments_for_delivery_notes([dn["name"] for dn in return_delivery_notes])
     return_records = _get_return_records_for_shipments([shipment["name"] for shipment in shipments])
+    return_approval_requests = _get_return_approval_requests_for_shipments([shipment["name"] for shipment in shipments])
     return_shipments = _dedupe_named_rows(
         return_shipments + _get_shipments_by_names([record.get("reverse_shipment") for record in return_records])
     )
@@ -3037,6 +3113,7 @@ def _build_portal_order_tracking_context(order_doc) -> Dict[str, Any]:
             return_shipments = _get_shipments_for_delivery_notes([dn["name"] for dn in return_delivery_notes])
 
     return_records = _get_return_records_for_shipments([shipment["name"] for shipment in shipments])
+    return_approval_requests = _get_return_approval_requests_for_shipments([shipment["name"] for shipment in shipments])
     return_shipments = _dedupe_named_rows(
         return_shipments + _get_shipments_by_names([record.get("reverse_shipment") for record in return_records])
     )
@@ -3052,6 +3129,7 @@ def _build_portal_order_tracking_context(order_doc) -> Dict[str, Any]:
         "draft_return_delivery_notes": draft_return_delivery_notes,
         "return_shipments": return_shipments,
         "return_records": return_records,
+        "return_approval_requests": return_approval_requests,
         "return_invoices": return_invoices,
         "draft_return_invoices": draft_return_invoices,
     }
@@ -3130,6 +3208,16 @@ def _get_return_unavailable_reason(context: Dict[str, Any], signals: Optional[Di
     if context["draft_return_invoices"]:
         draft_invoice = context["draft_return_invoices"][0]
         return f"A return request already exists as {draft_invoice.get('name')}."
+    active_request = next(
+        (
+            request
+            for request in context.get("return_approval_requests", [])
+            if str(request.get("request_status") or "").upper() in RETURN_APPROVAL_ACTIVE_STATUSES
+        ),
+        None,
+    )
+    if active_request:
+        return f"A return request is already active as {active_request.get('name')}."
     if context["return_invoices"]:
         return "A return has already been created for this order."
     if not flow_visibility["return_active"]:
@@ -3139,7 +3227,7 @@ def _get_return_unavailable_reason(context: Dict[str, Any], signals: Optional[Di
     if not source_invoice:
         return "A submitted sales invoice is required before a return request can be created online."
     if not context.get("shipments"):
-        return "A shipped order record is required before a return shipment can be created online."
+        return "A shipped order record is required before a return request can be created online."
     if not context.get("return_window_open"):
         return f"Return request is available only within {RETURN_WINDOW_DAYS} days from delivery."
     if not any(item.get("is_return_eligible") for item in eligible_items):
@@ -3292,6 +3380,7 @@ def get_order_delivery_tracking(
         "delivery_notes": context["delivery_notes"],
         "shipments": context["shipments"],
         "return_delivery_notes": context["return_delivery_notes"],
+        "return_approval_requests": context.get("return_approval_requests", []),
         "return_records": context.get("return_records", []),
         "return_shipments": context["return_shipments"],
         "return_tracking": context["return_shipments"],
@@ -3371,7 +3460,7 @@ def create_portal_return_request(
     reason: Optional[str] = None,
     selected_items: Optional[Any] = None,
 ) -> Dict[str, Any]:
-    from erpnext.controllers.sales_and_purchase_return import make_return_doc
+    from raftor_shippinghq.api.returns import submit_return_request
 
     order_doc = _get_portal_order_doc(order_name, order_doctype)
     context = _build_portal_order_tracking_context(order_doc)
@@ -3412,100 +3501,57 @@ def create_portal_return_request(
                 )
             )
 
-    with run_as("Administrator"):
-        return_doc = make_return_doc("Sales Invoice", source_invoice["name"])
-        if reason:
-            return_doc.remarks = reason.strip()
-
-        filtered_items = []
-        for item in list(return_doc.items):
-            source_row = item.get("sales_invoice_item")
-            requested_qty = flt(selected_by_row.get(source_row))
-            if requested_qty <= 0:
-                continue
-            item.qty = -1 * requested_qty
-            if item.get("stock_qty"):
-                conversion_factor = flt(item.get("conversion_factor")) or 1.0
-                item.stock_qty = -1 * requested_qty * conversion_factor
-            filtered_items.append(item)
-
-        if not filtered_items:
-            frappe.throw(frappe._("No eligible return items were found for this request."))
-        return_doc.set("items", filtered_items)
-        if hasattr(return_doc, "calculate_taxes_and_totals"):
-            return_doc.calculate_taxes_and_totals()
-
-        # Return invoices should not carry over stale advance-payment references from
-        # the source invoice; ERPNext validates these against actual Payment Entry /
-        # Journal Entry rows and the copied values can become invalid in this portal flow.
-        return_doc.allocate_advances_automatically = 0
-        if hasattr(return_doc, "advances"):
-            return_doc.set("advances", [])
-
-        return_doc.flags.ignore_permissions = True
-        return_doc.insert()
-        return_doc.flags.ignore_permissions = True
-        return_doc.add_comment(
-            "Comment",
-            f"{PORTAL_RETURN_REQUEST_MARKER} Customer started this return from the webshop order page for {order_doc.doctype} {order_doc.name}.",
+    outbound_shipment = _get_return_target_shipment(context)
+    if not outbound_shipment:
+        frappe.throw(
+            frappe._("A shipped order record is required before a return request can be created online.")
         )
 
-        outbound_shipment = _get_return_target_shipment(context)
-        if not outbound_shipment:
-            frappe.throw(
-                frappe._("A shipped order record is required before a return shipment can be created online.")
-            )
-        reverse_result = {}
-        reverse_message = "Your return request has been created."
-        outbound_shipment_doc = frappe.get_doc("Shipment", outbound_shipment["name"])
-        if (
-            outbound_shipment_doc.get("service_provider") == "Shiprocket"
-            and outbound_shipment_doc.get("shiprocket_order_id")
-        ):
-            if is_optional_app_installed("erpnext_shipping_extended"):
-                from erpnext_shipping_extended.api.returns import create_return_shipment
+    selected_rows = []
+    for sales_invoice_item, qty in selected_by_row.items():
+        eligible_row = eligible_by_row.get(sales_invoice_item) or {}
+        selected_rows.append(
+            {
+                "sales_invoice_item": sales_invoice_item,
+                "qty": qty,
+                "item_code": eligible_row.get("item_code"),
+                "item_name": eligible_row.get("item_name"),
+                "uom": eligible_row.get("uom"),
+                "remaining_returnable_qty": eligible_row.get("remaining_returnable_qty"),
+            }
+        )
 
-                reverse_result = create_return_shipment(
-                    shipment_name=outbound_shipment["name"],
-                    return_reason=reason.strip() if reason else "Customer return request from webshop",
-                )
-            else:
-                manual_follow_up_message = (
-                    f"{PORTAL_RETURN_REQUEST_MARKER} Reverse pickup was not auto-created because "
-                    "optional app erpnext_shipping_extended is not installed on this bench."
-                )
-                return_doc.add_comment("Comment", manual_follow_up_message)
-                order_doc.add_comment("Comment", manual_follow_up_message)
-                reverse_message = "Your return request has been created. Reverse pickup will be arranged manually."
-        else:
-            manual_follow_up_message = (
-                f"{PORTAL_RETURN_REQUEST_MARKER} Reverse pickup was not auto-created because shipment "
-                f"{outbound_shipment_doc.name} is not linked to a Shiprocket order."
-            )
-            return_doc.add_comment("Comment", manual_follow_up_message)
-            order_doc.add_comment("Comment", manual_follow_up_message)
-            reverse_message = "Your return request has been created. Reverse pickup will be arranged manually."
-
+    with run_as("Administrator"):
+        request_result = submit_return_request(
+            order_doctype=order_doc.doctype,
+            order_name=order_doc.name,
+            sales_invoice=source_invoice["name"],
+            original_shipment=outbound_shipment["name"],
+            customer=order_doc.get("customer"),
+            customer_name=order_doc.get("customer_name"),
+            customer_email=order_doc.get("contact_email") or order_doc.get("contact_display"),
+            return_reason=reason.strip() if reason else "Customer return request from webshop",
+            customer_remarks=reason.strip() if reason else "",
+            items=selected_rows,
+        )
         order_doc.flags.ignore_permissions = True
         if reason:
             order_doc.add_comment(
                 "Comment",
-                f"{PORTAL_RETURN_REQUEST_MARKER} Customer requested a return: {reason.strip()}",
+                f"{PORTAL_RETURN_REQUEST_MARKER} Customer requested a return for approval: {reason.strip()}",
             )
         else:
             order_doc.add_comment(
                 "Comment",
-                f"{PORTAL_RETURN_REQUEST_MARKER} Customer started a return from the webshop order page.",
+                f"{PORTAL_RETURN_REQUEST_MARKER} Customer started a return request from the webshop order page.",
             )
 
     return {
         "ok": True,
         "order_name": order_doc.name,
         "order_doctype": order_doc.doctype,
-        "return_invoice": return_doc.name,
-        "return_shipment": reverse_result.get("return_shipment"),
-        "return_record": reverse_result.get("return_record"),
-        "message": reverse_message,
+        "return_request": request_result.get("return_request"),
+        "message": request_result.get("message") or "Your return request has been submitted for review.",
     }
 
 

@@ -7,6 +7,7 @@ from frappe.utils import nowdate, flt, cint
 from catalog_extensions.install_support import is_doctype_available, is_optional_app_installed
 from catalog_extensions import order_billing
 from catalog_extensions.simple_checkout import PAYMENT_MODE_COD, PAYMENT_MODE_PREPAID, get_payment_mode_for_doc
+from erpnext_shipping_extended.shipment_provider_fields import get_external_shipment_id
 
 FULFILLMENT_MARKER = "[catalog_extensions_fulfillment]"
 PICKUP_MARKER = "[catalog_extensions_pickup]"
@@ -18,6 +19,14 @@ DEFAULT_PARCEL = {
     "weight": 0.5,
     "count": 1,
 }
+
+
+class DeliveryNoteStockBlockedError(Exception):
+    def __init__(self, delivery_note_name: str | None, delivery_note_created: bool, original_exception: Exception):
+        super().__init__(str(original_exception))
+        self.delivery_note_name = delivery_note_name
+        self.delivery_note_created = delivery_note_created
+        self.original_exception = original_exception
 
 
 def _debug_log(message: str, **context) -> None:
@@ -97,6 +106,20 @@ def _get_existing_delivery_note_name(sales_order_name: str) -> str | None:
     return rows[0]["name"] if rows else None
 
 
+def _is_negative_stock_error(exc: Exception) -> bool:
+    return exc.__class__.__name__ == "NegativeStockError"
+
+
+def _submit_delivery_note(delivery_note, *, created: bool):
+    try:
+        delivery_note.submit()
+    except Exception as exc:
+        if _is_negative_stock_error(exc):
+            raise DeliveryNoteStockBlockedError(delivery_note.name, created, exc) from exc
+        raise
+    return delivery_note, created
+
+
 def _get_existing_shipment_name(delivery_note_name: str) -> str | None:
     if not is_doctype_available("Shipment"):
         return None
@@ -148,15 +171,18 @@ def _get_sales_order_names_for_delivery_notes(delivery_note_names: list[str]) ->
 def _get_delivery_note_doc(order_doc):
     existing_name = _get_existing_delivery_note_name(order_doc.name)
     if existing_name:
-        return frappe.get_doc("Delivery Note", existing_name), False
+        delivery_note = frappe.get_doc("Delivery Note", existing_name)
+        if delivery_note.docstatus == 1:
+            return delivery_note, False
+        delivery_note.flags.ignore_permissions = True
+        return _submit_delivery_note(delivery_note, created=False)
 
     from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 
     delivery_note = make_delivery_note(order_doc.name)
     delivery_note.flags.ignore_permissions = True
     delivery_note.insert(ignore_permissions=True)
-    delivery_note.submit()
-    return delivery_note, True
+    return _submit_delivery_note(delivery_note, created=True)
 
 
 def _get_shipment_content_description(order_doc, delivery_note_doc=None) -> str:
@@ -505,7 +531,7 @@ def attempt_pickup_after_dispatch(shipment_name: str, sales_order_name: str | No
     shipment_doc = frappe.get_doc("Shipment", shipment_name)
     order_doc = frappe.get_doc("Sales Order", sales_order_name) if sales_order_name else None
 
-    if shipment_doc.get("service_provider") != "Shiprocket" or not shipment_doc.get("shiprocket_shipment_id"):
+    if shipment_doc.get("service_provider") != "Shiprocket" or not get_external_shipment_id(shipment_doc):
         target = order_doc or shipment_doc
         _add_comment_once(
             target,
@@ -630,9 +656,32 @@ def automate_paid_webshop_order_fulfillment(order_doc) -> dict:
         "shipment_created": False,
         "dispatch_queued": False,
         "pickup_queued": False,
+        "stock_blocked": False,
     }
 
-    delivery_note_doc, delivery_note_created = _get_delivery_note_doc(order_doc)
+    try:
+        delivery_note_doc, delivery_note_created = _get_delivery_note_doc(order_doc)
+    except DeliveryNoteStockBlockedError as exc:
+        result["delivery_note"] = exc.delivery_note_name
+        result["delivery_note_created"] = exc.delivery_note_created
+        result["stock_blocked"] = True
+        frappe.log_error(
+            title="Catalog fulfillment: delivery note blocked by stock",
+            message=frappe.get_traceback(),
+        )
+        _debug_log(
+            "Webshop fulfillment blocked by insufficient stock",
+            sales_order=order_doc.name,
+            delivery_note=exc.delivery_note_name,
+        )
+        delivery_note_label = f"Delivery Note {exc.delivery_note_name}" if exc.delivery_note_name else "Delivery Note automation"
+        _add_comment_once(
+            order_doc,
+            FULFILLMENT_MARKER,
+            f"{delivery_note_label} could not be submitted automatically because stock is insufficient. Manual stock review is required before fulfillment can continue.",
+        )
+        return result
+
     result["delivery_note"] = delivery_note_doc.name
     result["delivery_note_created"] = delivery_note_created
     _debug_log(
@@ -641,8 +690,6 @@ def automate_paid_webshop_order_fulfillment(order_doc) -> dict:
         delivery_note=delivery_note_doc.name,
         delivery_note_created=delivery_note_created,
     )
-    shipment_result = automate_shipment_for_delivery_note(order_doc, delivery_note_doc)
-    result.update({key: value for key, value in shipment_result.items() if key != "delivery_note_created"})
     return result
 
 
@@ -660,6 +707,7 @@ def automate_webshop_order_fulfillment_if_allowed(order_doc) -> dict:
             "shipment_created": False,
             "dispatch_queued": False,
             "pickup_queued": False,
+            "stock_blocked": False,
             "skipped": True,
         }
     return automate_paid_webshop_order_fulfillment(order_doc)

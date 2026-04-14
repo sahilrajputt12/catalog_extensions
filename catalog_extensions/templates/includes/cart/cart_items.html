@@ -41,7 +41,7 @@
 					<div class="item-subtitle mr-2">
 						{{ d.item_code }}
 					</div>
-					{% if d.stock_message and d.stock_state in ("out_of_stock", "low_stock") %}
+					{% if cart_settings.show_stock_availability and d.stock_message and d.stock_state in ("out_of_stock", "low_stock") %}
 					<div class="ce-cart-stock-note ce-cart-stock-note--{{ d.stock_state }}">
 						{{ d.stock_message }}
 					</div>

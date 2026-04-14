@@ -639,7 +639,7 @@ function handleOrderAction(button) {
 			title: "Return request",
 			label: "Return request",
 			method: "catalog_extensions.api.create_portal_return_request",
-			message: "Your return request has been created.",
+			message: "Your return request has been submitted for review.",
 			confirmText: "Create a return request for this order?",
 			fieldLabel: "Return reason",
 		},
@@ -714,6 +714,24 @@ function openReturnRequestDialog(button, mountPoint, orderContext, config) {
 		closeReturnDialog(dialog.overlay);
 		submitOrderAction(button, mountPoint, orderContext, config, selection.reason, {
 			selected_items: selection.items,
+		}).then((message) => {
+			if (selection.files.length && message && message.return_request) {
+				uploadReturnEvidenceFiles(message.return_request, selection.files)
+					.then((count) => {
+						if (count > 0) {
+							frappe.show_alert({
+								message: `${count} evidence file${count === 1 ? "" : "s"} uploaded to your return request.`,
+								indicator: "blue",
+							});
+						}
+					})
+					.catch(() => {
+						frappe.show_alert({
+							message: "Your return request was created, but some evidence files could not be uploaded.",
+							indicator: "orange",
+						});
+					});
+			}
 		});
 	});
 }
@@ -741,6 +759,10 @@ function buildReturnDialog(eligibleItems, trackingData) {
 				<label class="ce-return-dialog-reason">
 					<span>Return reason</span>
 					<textarea name="return_reason" rows="3" placeholder="Optional reason for the return"></textarea>
+				</label>
+				<label class="ce-return-dialog-reason">
+					<span>Photos or documents</span>
+					<input type="file" name="return_evidence" multiple accept="image/*,.pdf">
 				</label>
 				<div class="ce-return-dialog-error" aria-live="polite"></div>
 				<div class="ce-return-dialog-actions">
@@ -799,6 +821,7 @@ function buildReturnItemRow(item, index) {
 function collectReturnSelection(form, eligibleItems) {
 	const items = [];
 	const reasonField = form.querySelector('textarea[name="return_reason"]');
+	const fileInput = form.querySelector('input[name="return_evidence"]');
 
 	eligibleItems.forEach((item) => {
 		const itemId = item.sales_invoice_item;
@@ -827,6 +850,7 @@ function collectReturnSelection(form, eligibleItems) {
 	return {
 		items,
 		reason: String(reasonField ? reasonField.value : "").trim(),
+		files: Array.from((fileInput && fileInput.files) || []),
 	};
 }
 
@@ -912,21 +936,52 @@ function submitOrderAction(button, mountPoint, orderContext, config, reason, ext
 		extraArgs || {}
 	);
 
-	frappe.call({
-		method: config.method,
-		args,
-		callback: (response) => {
-			frappe.show_alert({
-				message: (response.message && response.message.message) || config.message,
-				indicator: "green",
-			});
-			loadTracking(mountPoint, orderContext);
-		},
-		error: () => {
-			button.removeAttribute("aria-disabled");
-			button.classList.remove("disabled");
-			button.textContent = originalLabel;
-		},
+	return new Promise((resolve, reject) => {
+		frappe.call({
+			method: config.method,
+			args,
+			callback: (response) => {
+				frappe.show_alert({
+					message: (response.message && response.message.message) || config.message,
+					indicator: "green",
+				});
+				loadTracking(mountPoint, orderContext);
+				resolve(response.message || {});
+			},
+			error: () => {
+				button.removeAttribute("aria-disabled");
+				button.classList.remove("disabled");
+				button.textContent = originalLabel;
+				reject(new Error("Order action failed"));
+			},
+		});
+	});
+}
+
+function uploadReturnEvidenceFiles(requestName, files) {
+	const uploads = (files || []).map((file) => uploadReturnEvidenceFile(requestName, file));
+	return Promise.all(uploads).then((results) => results.filter(Boolean).length);
+}
+
+function uploadReturnEvidenceFile(requestName, file) {
+	const formData = new FormData();
+	formData.append("file", file, file.name);
+	formData.append("doctype", "Return Approval Request");
+	formData.append("docname", requestName);
+	formData.append("is_private", "1");
+	if (window.csrf_token || (window.frappe && frappe.csrf_token)) {
+		formData.append("csrf_token", window.csrf_token || frappe.csrf_token);
+	}
+
+	return window.fetch("/api/method/upload_file", {
+		method: "POST",
+		body: formData,
+		credentials: "same-origin",
+	}).then((response) => {
+		if (!response.ok) {
+			throw new Error(`Upload failed for ${file.name}`);
+		}
+		return response.json();
 	});
 }
 

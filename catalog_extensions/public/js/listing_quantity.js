@@ -48,9 +48,12 @@ frappe.ready(function () {
         skip_quotation_creation: false
       },
       callback: function (r) {
-        var productInfo = r && r.message ? (r.message.product_info || {}) : {};
-        stockCache[itemCode] = productInfo;
-        callback(productInfo);
+        var payload = {
+          product_info: r && r.message ? (r.message.product_info || {}) : {},
+          cart_settings: r && r.message ? (r.message.cart_settings || {}) : {}
+        };
+        stockCache[itemCode] = payload;
+        callback(payload);
       }
     });
   }
@@ -60,11 +63,17 @@ frappe.ready(function () {
     var existing = card.querySelector('.ce-listing-stock-note');
     if (existing) existing.remove();
 
-    var state = stockData && stockData.stock_state;
-    var message = stockData && stockData.stock_message;
+    var productInfo = stockData && stockData.product_info ? stockData.product_info : {};
+    var cartSettings = stockData && stockData.cart_settings ? stockData.cart_settings : {};
+    var showStockAvailability = Boolean(cartSettings.show_stock_availability);
+    var state = productInfo.stock_state;
+    var message = productInfo.stock_message;
+    var hasCoreOutOfStockLabel = state === 'out_of_stock' && !!card.querySelector('.out-of-stock');
     var shouldShow =
       state === 'out_of_stock' && currentQty > 0;
 
+    if (!showStockAvailability) return;
+    if (hasCoreOutOfStockLabel) return;
     if (!shouldShow || !message) return;
 
     var note = document.createElement('div');
@@ -85,13 +94,14 @@ frappe.ready(function () {
   function applyListingStockState(card, itemCode, stockData) {
     if (!card || !itemCode || !stockData) return;
 
+    var productInfo = stockData.product_info || {};
     var addBtn = card.querySelector('.btn-add-to-cart-list[data-item-code="' + itemCode + '"]');
     var wrapper = card.querySelector('.listing-qty-wrapper[data-item-code="' + itemCode + '"]');
     var currentQty = getCurrentQty(card, itemCode);
-    var maxOrderableQty = parseFloat(stockData.max_orderable_qty || '');
-    var outOfStock = stockData.stock_state === 'out_of_stock';
+    var maxOrderableQty = parseFloat(productInfo.max_orderable_qty || '');
+    var canAddToCart = productInfo.can_add_to_cart !== false;
 
-    if (outOfStock && currentQty <= 0) {
+    if (!canAddToCart) {
       if (wrapper) wrapper.classList.add('hidden');
       if (addBtn) addBtn.classList.add('hidden');
       renderListingStockMessage(card, stockData, currentQty);
@@ -99,7 +109,7 @@ frappe.ready(function () {
     }
 
     if (addBtn) {
-      addBtn.classList.toggle('hidden', currentQty > 0 || stockData.can_add_to_cart === false);
+      addBtn.classList.toggle('hidden', currentQty > 0 || productInfo.can_add_to_cart === false);
     }
     if (wrapper) {
       wrapper.classList.toggle('hidden', currentQty <= 0);
@@ -107,15 +117,15 @@ frappe.ready(function () {
       var upButton = wrapper.querySelector('.cart-btn[data-dir="up"]');
       if (input) {
         input.dataset.maxOrderableQty = Number.isNaN(maxOrderableQty) ? '' : String(maxOrderableQty);
-        input.dataset.stockMessage = stockData.stock_message || '';
+        input.dataset.stockMessage = productInfo.stock_message || '';
         input.value = String(currentQty || 0);
       }
       if (upButton) {
-        var blocked = stockData.can_increase_qty === false ||
+        var blocked = productInfo.can_increase_qty === false ||
           (!Number.isNaN(maxOrderableQty) && currentQty >= maxOrderableQty);
         upButton.disabled = blocked;
         upButton.classList.toggle('disabled', blocked);
-        upButton.dataset.stockMessage = stockData.stock_message || '';
+        upButton.dataset.stockMessage = productInfo.stock_message || '';
       }
     }
 

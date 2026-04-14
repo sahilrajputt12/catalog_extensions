@@ -250,7 +250,7 @@ function loadMore(state) {
 					return;
 				} else {
 					// Append products to BOTH views
-					appendProducts(uniqueNewItems);
+					appendProducts(uniqueNewItems, r.message.settings || {});
 				}
 				
 				// ✅ CRITICAL: Increment start position (based on raw response)
@@ -318,7 +318,7 @@ function getCurrentFilters() {
 	return filters;
 }
 
-function appendProducts(products) {
+function appendProducts(products, settings) {
 	// ✅ FIXED: Find BOTH grid and list containers
 	const gridArea = document.getElementById('products-grid-area');
 	const listArea = document.getElementById('products-list-area');
@@ -388,14 +388,14 @@ function appendProducts(products) {
 	products.forEach(product => {
 		// Append to grid if it exists
 		if (gridContainer && gridExists) {
-			const gridHtml = createProductHTML(product, 'grid');
+			const gridHtml = createProductHTML(product, 'grid', settings);
 			gridContainer.insertAdjacentHTML('beforeend', gridHtml);
 			appendedCount++;
 		}
 		
 		// Append to list if it exists
 		if (listContainer && listExists) {
-			const listHtml = createProductHTML(product, 'list');
+			const listHtml = createProductHTML(product, 'list', settings);
 			listContainer.insertAdjacentHTML('beforeend', listHtml);
 		}
 	});
@@ -422,14 +422,17 @@ function appendProducts(products) {
 	}
 }
 
-function createProductHTML(product, viewType) {
+function createProductHTML(product, viewType, settings) {
 	const name = product.item_name || product.web_item_name || '';
 	const code = product.item_code || product.name || '';
 	const route = product.route || `/product/${code}`;
 	const href = route && route.startsWith('/') ? route : `/${route}`;
 	const image = product.website_image || product.image || '/assets/frappe/images/default-image.svg';
 	const price = product.formatted_price || '';
-	const inStock = product.in_stock !== false;
+	const inStock = Boolean(product.in_stock);
+	const allowItemsNotInStock = Boolean(settings && settings.allow_items_not_in_stock);
+	const showStockAvailability = Boolean(settings && settings.show_stock_availability);
+	const canAddToCart = allowItemsNotInStock || inStock;
 	const shortDesc = product.short_description || '';
 	const category = product.item_group || product.item_group_name || product.item_group_title || '';
 
@@ -451,8 +454,8 @@ function createProductHTML(product, viewType) {
 								${category ? `<div class="product-category" itemprop="name">${category}</div>` : ''}
 								${shortDesc ? `<p class="card-text">${shortDesc}</p>` : ''}
 								${price ? `<p class="product-price">${price}</p>` : ''}
-								${!inStock ? '<div class="out-of-stock">Out of Stock</div>' : ''}
-								${inStock ? `
+								${showStockAvailability && !inStock ? '<div class="out-of-stock">Out of Stock</div>' : ''}
+								${canAddToCart ? `
 									<div class="btn btn-sm btn-primary btn-add-to-cart-list"
 										data-item-code="${code}">
 										Add to Cart
@@ -482,8 +485,8 @@ function createProductHTML(product, viewType) {
 						</div>
 						${category ? `<div class="product-category" itemprop="name">${category}</div>` : ''}
 						${price ? `<div class="product-price">${price}</div>` : ''}
-						${!inStock ? '<div class="out-of-stock">Out of Stock</div>' : ''}
-						${inStock ? `
+						${showStockAvailability && !inStock ? '<div class="out-of-stock">Out of Stock</div>' : ''}
+						${canAddToCart ? `
 							<div class="btn btn-sm btn-primary btn-add-to-cart-list w-100 mt-2"
 								data-item-code="${code}">
 								<span class="mr-2">

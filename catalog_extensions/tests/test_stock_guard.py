@@ -13,7 +13,11 @@ frappe.logger = lambda *args, **kwargs: SimpleNamespace(error=lambda *a, **k: No
 class StockGuardTestCase(TestCase):
 	def test_out_of_stock_blocks_add_and_increase(self):
 		result = _build_stock_guard_metadata(
-			available_qty=0, current_qty=0, on_backorder=False, is_stock_item=True
+			available_qty=0,
+			current_qty=0,
+			on_backorder=False,
+			is_stock_item=True,
+			allow_items_not_in_stock=False,
 		)
 
 		self.assertEqual(result["stock_state"], "out_of_stock")
@@ -24,12 +28,31 @@ class StockGuardTestCase(TestCase):
 
 	def test_out_of_stock_preserves_existing_cart_qty_without_increase(self):
 		result = _build_stock_guard_metadata(
-			available_qty=0, current_qty=2, on_backorder=False, is_stock_item=True
+			available_qty=0,
+			current_qty=2,
+			on_backorder=False,
+			is_stock_item=True,
+			allow_items_not_in_stock=False,
 		)
 
 		self.assertEqual(result["max_orderable_qty"], 2)
 		self.assertTrue(result["can_add_to_cart"])
 		self.assertFalse(result["can_increase_qty"])
+
+	def test_out_of_stock_allows_ordering_when_setting_enabled(self):
+		result = _build_stock_guard_metadata(
+			available_qty=0,
+			current_qty=0,
+			on_backorder=False,
+			is_stock_item=True,
+			allow_items_not_in_stock=True,
+		)
+
+		self.assertEqual(result["stock_state"], "out_of_stock")
+		self.assertEqual(result["stock_message"], "Out of stock")
+		self.assertIsNone(result["max_orderable_qty"])
+		self.assertTrue(result["can_add_to_cart"])
+		self.assertTrue(result["can_increase_qty"])
 
 	def test_low_stock_uses_amazon_style_message_when_stock_quantity_enabled(self):
 		result = _build_stock_guard_metadata(
@@ -63,10 +86,27 @@ class StockGuardTestCase(TestCase):
 
 	def test_backorder_stays_purchasable(self):
 		result = _build_stock_guard_metadata(
-			available_qty=0, current_qty=0, on_backorder=True, is_stock_item=True
+			available_qty=0,
+			current_qty=0,
+			on_backorder=True,
+			is_stock_item=True,
+			allow_items_not_in_stock=False,
 		)
 
 		self.assertEqual(result["stock_state"], "backorder")
 		self.assertEqual(result["stock_message"], "Available on backorder")
+		self.assertTrue(result["can_add_to_cart"])
+		self.assertTrue(result["can_increase_qty"])
+
+	def test_non_stock_item_stays_purchasable(self):
+		result = _build_stock_guard_metadata(
+			available_qty=0,
+			current_qty=0,
+			on_backorder=False,
+			is_stock_item=False,
+			allow_items_not_in_stock=False,
+		)
+
+		self.assertEqual(result["stock_state"], "in_stock")
 		self.assertTrue(result["can_add_to_cart"])
 		self.assertTrue(result["can_increase_qty"])

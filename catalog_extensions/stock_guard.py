@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from webshop.webshop.doctype.webshop_settings.webshop_settings import get_shopping_cart_settings
 from webshop.webshop.doctype.webshop_settings.webshop_settings import show_quantity_in_website
 from webshop.webshop.shopping_cart import cart as core_cart
 from webshop.webshop.utils.product import get_web_item_qty_in_stock
@@ -18,7 +19,13 @@ def _translate(text: str) -> str:
 
 
 def _build_stock_guard_metadata(
-	*, available_qty=None, current_qty=0, on_backorder=False, is_stock_item=True, show_stock_qty=False
+	*,
+	available_qty=None,
+	current_qty=0,
+	on_backorder=False,
+	is_stock_item=True,
+	show_stock_qty=False,
+	allow_items_not_in_stock=False,
 ):
 	current_qty = flt(current_qty)
 	available_qty = None if available_qty is None else flt(available_qty)
@@ -51,12 +58,12 @@ def _build_stock_guard_metadata(
 	if available_qty <= 0:
 		return {
 			"available_qty": available_qty,
-			"max_orderable_qty": max_orderable_qty,
+			"max_orderable_qty": None if allow_items_not_in_stock else max_orderable_qty,
 			"stock_state": "out_of_stock",
 			"stock_message": _translate("Out of stock"),
 			"show_stock_qty": bool(show_stock_qty),
-			"can_add_to_cart": current_qty > 0,
-			"can_increase_qty": False,
+			"can_add_to_cart": True if allow_items_not_in_stock else current_qty > 0,
+			"can_increase_qty": True if allow_items_not_in_stock else False,
 		}
 
 	if available_qty <= LOW_STOCK_THRESHOLD:
@@ -97,6 +104,7 @@ def get_stock_guard_data(item_code: str, current_qty=0):
 		available_qty = stock_status.get("stock_qty")
 		is_stock_item = bool(stock_status.get("is_stock_item", 1))
 	show_stock_qty = bool(show_quantity_in_website())
+	allow_items_not_in_stock = bool(getattr(get_shopping_cart_settings(), "allow_items_not_in_stock", 0))
 
 	metadata = _build_stock_guard_metadata(
 		available_qty=available_qty,
@@ -104,9 +112,11 @@ def get_stock_guard_data(item_code: str, current_qty=0):
 		on_backorder=on_backorder,
 		is_stock_item=is_stock_item,
 		show_stock_qty=show_stock_qty,
+		allow_items_not_in_stock=allow_items_not_in_stock,
 	)
 	metadata["on_backorder"] = on_backorder
 	metadata["is_stock_item"] = is_stock_item
+	metadata["allow_items_not_in_stock"] = allow_items_not_in_stock
 	return metadata
 
 
@@ -137,7 +147,11 @@ def validate_requested_cart_qty(item_code: str, requested_qty, current_qty=0):
 	current_qty = flt(current_qty)
 	metadata = get_stock_guard_data(item_code, current_qty=current_qty)
 
-	if metadata.get("on_backorder") or not metadata.get("is_stock_item", True):
+	if (
+		metadata.get("on_backorder")
+		or not metadata.get("is_stock_item", True)
+		or metadata.get("allow_items_not_in_stock")
+	):
 		return metadata
 
 	max_orderable_qty = flt(metadata.get("max_orderable_qty") or 0)
