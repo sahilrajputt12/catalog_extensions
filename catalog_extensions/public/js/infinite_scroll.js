@@ -423,15 +423,21 @@ function appendProducts(products, settings) {
 }
 
 function createProductHTML(product, viewType, settings) {
+	const asCheckboxValue = (value) => {
+		if (typeof value === "string") {
+			return value === "1";
+		}
+		return Boolean(value);
+	};
 	const name = product.item_name || product.web_item_name || '';
 	const code = product.item_code || product.name || '';
 	const route = product.route || `/product/${code}`;
 	const href = route && route.startsWith('/') ? route : `/${route}`;
 	const image = product.website_image || product.image || '/assets/frappe/images/default-image.svg';
 	const price = product.formatted_price || '';
-	const inStock = Boolean(product.in_stock);
-	const allowItemsNotInStock = Boolean(settings && settings.allow_items_not_in_stock);
-	const showStockAvailability = Boolean(settings && settings.show_stock_availability);
+	const inStock = asCheckboxValue(product.in_stock);
+	const allowItemsNotInStock = asCheckboxValue(settings && settings.allow_items_not_in_stock);
+	const showStockAvailability = asCheckboxValue(settings && settings.show_stock_availability);
 	const canAddToCart = allowItemsNotInStock || inStock;
 	const shortDesc = product.short_description || '';
 	const category = product.item_group || product.item_group_name || product.item_group_title || '';

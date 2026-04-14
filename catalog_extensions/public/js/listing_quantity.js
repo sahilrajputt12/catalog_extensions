@@ -8,6 +8,13 @@ frappe.ready(function () {
   if (!listing) return;
   var stockCache = {};
 
+  function asCheckboxValue(value) {
+    if (typeof value === 'string') {
+      return value === '1';
+    }
+    return Boolean(value);
+  }
+
   function getCurrentQty(card, itemCode) {
     var input = card.querySelector('.listing-qty-wrapper[data-item-code="' + itemCode + '"] .cart-qty');
     if (input) {
@@ -65,7 +72,7 @@ frappe.ready(function () {
 
     var productInfo = stockData && stockData.product_info ? stockData.product_info : {};
     var cartSettings = stockData && stockData.cart_settings ? stockData.cart_settings : {};
-    var showStockAvailability = Boolean(cartSettings.show_stock_availability);
+    var showStockAvailability = asCheckboxValue(cartSettings.show_stock_availability);
     var state = productInfo.stock_state;
     var message = productInfo.stock_message;
     var hasCoreOutOfStockLabel = state === 'out_of_stock' && !!card.querySelector('.out-of-stock');

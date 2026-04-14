@@ -5,6 +5,13 @@ frappe.ready(function () {
 
 const stockGuardCache = {};
 
+function asCheckboxValue(value) {
+	if (typeof value === "string") {
+		return value === "1";
+	}
+	return Boolean(value);
+}
+
 function renderStockAlert(message, state) {
 	if (!message) {
 		return "";
@@ -125,13 +132,15 @@ function renderProductStockState(stockData) {
 
 	const productInfo = stockData && stockData.product_info ? stockData.product_info : {};
 	const cartSettings = stockData && stockData.cart_settings ? stockData.cart_settings : {};
-	const showStockAvailability = Boolean(cartSettings.show_stock_availability);
+	const showStockAvailability = asCheckboxValue(cartSettings.show_stock_availability);
+	const allowItemsNotInStock = asCheckboxValue(cartSettings.allow_items_not_in_stock);
 	const stockState = productInfo.stock_state || "";
 	const stockMessage = productInfo.stock_message || "";
 	const canAddToCart = productInfo.can_add_to_cart !== false;
 	const canIncreaseQty = productInfo.can_increase_qty !== false;
 	const maxOrderableQty = parseFloat(productInfo.max_orderable_qty);
-	const useCoreOutOfStockView = stockState === "out_of_stock" && !productInfo.qty;
+	const useCoreOutOfStockView =
+		stockState === "out_of_stock" && !productInfo.qty && !allowItemsNotInStock;
 
 	if (!showStockAvailability) {
 		stockNode.innerHTML = "";
@@ -192,7 +201,7 @@ function applyCartStockGuard() {
 
 		const productInfo = stockData.product_info || {};
 		const cartSettings = stockData.cart_settings || {};
-		const showStockAvailability = Boolean(cartSettings.show_stock_availability);
+		const showStockAvailability = asCheckboxValue(cartSettings.show_stock_availability);
 		const input = row.querySelector(".cart-qty");
 		const upButton = row.querySelector(".cart-btn[data-dir='up']");
 		const subtitle = row.querySelector(".item-subtitle");
